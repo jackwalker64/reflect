@@ -11,7 +11,7 @@ import hashlib
 
 
 
-def main():
+def start():
   logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET)
 
   parser = argparse.ArgumentParser()
@@ -57,15 +57,13 @@ def runUserScript(filepath):
   logging.info("Executing {}".format(filepath))
 
   # Construct the set of globals that will be passed to the user's script
-  globs = { "__name__": "__main__" }
+  globs = {
+    "__name__": "__main__",
+    "__reflectMode__": "server"
+  }
 
   # Execute the user's script
   with open(filepath) as f:
     exec(f.read(), globs)
 
-
-
-if __name__ == "__main__":
-  print("")
-  main()
-  print("")
+  logging.info("Finished executing {}".format(filepath))

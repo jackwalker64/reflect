@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import fractions
 import imageio
 import os
+
+mode = "server" # this should initially be "normal"
+logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET)
 
 
 
@@ -53,6 +57,25 @@ class VideoClip(Clip):
     # self.audio = audio
     # self.mask = mask
 
+    if type(self.source) == str:
+      # This VideoClip is sourced directly from a file, so this clip belongs in the default graph
+      from .util import CompositionGraph
+      self.graph = CompositionGraph.current()
+      self.graph.addLeaf(self)
+    elif type(self.source) == tuple:
+      # This VideoClip is sourced from one or more other clips, which are no longer leaves
+      for clip in self.source:
+        if clip.graph != self.source[0].graph:
+          raise Exception("the sources are not all in the same graph")
+        clip.graph.removeLeaf(clip)
+
+      # Add this new clip as a leaf in the graph containing the source(s)
+      self.graph = self.source[0].graph
+      self.graph.addLeaf(self)
+
+    # Initialise this VideoClip's internal store of cached frames
+    self.store = {}
+
 
 
   @property
@@ -83,6 +106,25 @@ class VideoClip(Clip):
   @property
   def frameCount(self):
     return round(self.duration * self.fps)
+
+
+
+  def frame(self, n):
+    if mode == "server":
+      if n in self.store:
+        # The frame already exists in this clip's internal store, so don't bother re-rendering it
+        logging.info("Store hit for frame {}".format(n))
+        return self.store[n]
+      else:
+        # Render the frame and add it to the store before returning it
+        logging.info("Rendering and storing frame {}".format(n))
+        image = self.framegen(n)
+        self.store[n] = image
+        return image
+    else:
+      # We are not in server mode, so there is no internal store and we should just render the frame
+      logging.info("Rendering frame {}".format(n))
+      return self.framegen(n)
 
 
 

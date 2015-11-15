@@ -43,8 +43,8 @@ class CompositionGraph:
 
 
 
-  def leaf(self, clip):
-    """leaf(clip)
+  def addLeaf(self, clip):
+    """addLeaf(clip)
 
     Add `clip` as a leaf of the graph.
     """
@@ -56,8 +56,8 @@ class CompositionGraph:
 
 
 
-  def deleaf(self, clip):
-    """deleaf(clip)
+  def removeLeaf(self, clip):
+    """removeLeaf(clip)
 
     Remove `clip` from the set of leaves.
     Raises KeyError if `clip` was not present as a leaf of the graph.
