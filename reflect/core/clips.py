@@ -4,9 +4,9 @@ import logging
 import fractions
 import imageio
 import os
+import inspect
 
 mode = "server" # this should initially be "normal"
-logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET)
 
 
 
@@ -67,7 +67,8 @@ class VideoClip(Clip):
       for clip in self.source:
         if clip.graph != self.source[0].graph:
           raise Exception("the sources are not all in the same graph")
-        clip.graph.removeLeaf(clip)
+        if clip.graph.isLeaf(clip):
+          clip.graph.removeLeaf(clip)
 
       # Add this new clip as a leaf in the graph containing the source(s)
       self.graph = self.source[0].graph
@@ -78,25 +79,49 @@ class VideoClip(Clip):
 
 
 
+  def __hash__(self):
+    def subhash(o):
+      """subhash(o)
+
+      The purpose of this function is to provide custom hashing functions for various classes,
+      without overriding the actual classes' definitions of __hash__.
+
+      This function will usually return o.__hash__(), but for some types of o, the hashing
+      behaviour will be weaker.
+      """
+
+      if isinstance(o, imageio.core.Format.Reader):
+        # Readers should have the same hash iff they are readers of the same filepath
+        return hash(o.request.filename)
+      else:
+        return hash(o)
+
+    closureVarsDict = inspect.getclosurevars(self.framegen).nonlocals
+    closureVarsTuple = tuple((varName, subhash(closureVarsDict[varName])) for varName in closureVarsDict)
+
+    return hash(closureVarsTuple)
+
+
+
   @property
   def size(self):
-    return self.metadata["size"]
+    return self.metadata.size
 
   @property
   def duration(self):
-    return self.metadata["duration"]
+    return self.metadata.duration
 
   @property
   def fps(self):
-    return self.metadata["fps"]
+    return self.metadata.fps
 
   @property
   def width(self):
-    return self.metadata["size"][0]
+    return self.metadata.size[0]
 
   @property
   def height(self):
-    return self.metadata["size"][1]
+    return self.metadata.size[1]
 
   @property
   def aspectRatio(self):
@@ -128,6 +153,26 @@ class VideoClip(Clip):
 
 
 
+class VideoClipMetadata():
+  """VideoClipMetadata()
+
+  Contains various properties representing the metadata of a particular video clip.
+  """
+
+
+
+  def __init__(self, size, duration, fps):
+    self.size = size         # (width, height) in pixels
+    self.duration = duration # duration in seconds
+    self.fps = fps
+
+
+
+  def __hash__(self):
+    return hash((self.size, self.duration, self.fps))
+
+
+
 def load(filepath):
   """load(filepath)
 
@@ -147,10 +192,6 @@ def load(filepath):
     return reader.get_data(n)
 
   md = reader.get_meta_data()
-  metadata = {
-    "size":     md["size"], # (width, height) in pixels
-    "duration": md["duration"], # duration in seconds
-    "fps":      md["fps"]
-  }
+  metadata = VideoClipMetadata(md["size"], md["duration"], md["fps"])
 
   return VideoClip(source, framegen, metadata)

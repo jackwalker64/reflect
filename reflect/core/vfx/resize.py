@@ -2,6 +2,8 @@
 
 from ..clips import VideoClip
 import cv2
+import copy
+import inspect
 
 
 
@@ -48,10 +50,10 @@ def resize(clip, size = None, width = None, height = None):
 
   # Framegen: Resize each frame to the specified dimensions
   def framegen(n):
-    image = source[0].frame(n)
+    image = clip.frame(n)
     return cv2.resize(image, (width, height), interpolation = cv2.INTER_AREA)
 
-  metadata = clip.metadata.copy()
-  metadata["size"] = (width, height)
+  metadata = copy.copy(clip.metadata)
+  metadata.size = (width, height)
 
   return VideoClip(source, framegen, metadata)

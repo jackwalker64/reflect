@@ -73,5 +73,18 @@ class CompositionGraph:
 
 
 
+  def isLeaf(self, clip):
+    """isLeaf(clip)
+
+    Returns True if clip is in the set of leaves, and False otherwise.
+    """
+
+    if not isinstance(clip, Clip):
+      raise TypeError("clip must be an instance of Clip")
+
+    return clip in self.leaves
+
+
+
 # Initialise an empty graph for normal use
 currentGraph = CompositionGraph()
