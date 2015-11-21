@@ -21,7 +21,7 @@ class CompositionGraph:
 
   @staticmethod
   def current():
-    return currentGraph
+    return globals()["currentGraph"]
 
 
 
@@ -32,8 +32,8 @@ class CompositionGraph:
     Sets the current global graph to `newGraph`, and returns the old graph.
     """
 
-    oldGraph = currentGraph
-    currentGraph = newGraph
+    oldGraph = globals()["currentGraph"]
+    globals()["currentGraph"] = newGraph
     return oldGraph
 
 
@@ -46,7 +46,7 @@ class CompositionGraph:
   def addLeaf(self, clip):
     """addLeaf(clip)
 
-    Add `clip` as a leaf of the graph.
+    Add `clip` to the graph as a leaf.
     """
 
     if not isinstance(clip, Clip):

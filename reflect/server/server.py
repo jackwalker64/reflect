@@ -9,6 +9,7 @@ from watchdog.events import FileSystemEventHandler
 import hashlib
 import traceback
 import datetime
+import reflect
 
 
 
@@ -66,10 +67,11 @@ def runUserScript(filepath):
   logging.info("{}: Entering {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(filepath)))
   print("")
 
+  # Reset the composition graph
+  oldGraph = reflect.CompositionGraph.swap(reflect.CompositionGraph())
+
   # Construct the set of globals that will be passed to the user's script
-  globs = {
-    "__name__": "__main__"
-  }
+  globs = { "__name__": "__main__" }
 
   # Execute the user's script
   with open(filepath) as f:
@@ -80,3 +82,6 @@ def runUserScript(filepath):
 
   print("")
   logging.info("{}: Exited {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(filepath)))
+
+  newGraph = reflect.CompositionGraph.current()
+  # TODO: Cache.usersScriptHasFinishedAndHereAreTheGraphsToCompare(oldGraph, newGraph)

@@ -6,7 +6,7 @@ import imageio
 import os
 import inspect
 
-mode = "server" # this should initially be "normal"
+mode = "normal"
 
 
 
@@ -183,19 +183,19 @@ class VideoClip(Clip):
 
   def frame(self, n):
     if mode == "server":
-      if n in self.store:
-        # The frame already exists in this clip's internal store, so don't bother re-rendering it
-        logging.info("Store hit for frame {}".format(n))
-        return self.store[n]
+      from reflect.server.cache import Cache
+      cache = Cache.current()
+      image = cache.get(self, n, None)
+      if image is not None:
+        # The frame already exists in the cache, so don't bother re-rendering it
+        return image
       else:
-        # Render the frame and add it to the store before returning it
-        logging.info("Rendering and storing frame {}".format(n))
+        # Render the frame, add it to the staging area of the cache, and then return it
         image = self.framegen(n)
-        self.store[n] = image
+        cache.stage(self, n, image)
         return image
     else:
-      # We are not in server mode, so there is no internal store and we should just render the frame
-      logging.info("Rendering frame {}".format(n))
+      # We are not in server mode, so there is no cache and we should just render the frame
       return self.framegen(n)
 
 
@@ -211,7 +211,7 @@ class VideoClipMetadata():
   def __init__(self, size, duration, fps):
     self.size = size         # (width, height) in pixels
     self.duration = duration # duration in seconds
-    self.fps = fps
+    self.fps = fps           # frames per second
 
 
 
