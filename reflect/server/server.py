@@ -68,8 +68,7 @@ def runUserScript(filepath):
 
   # Construct the set of globals that will be passed to the user's script
   globs = {
-    "__name__": "__main__",
-    "__reflectMode__": "server"
+    "__name__": "__main__"
   }
 
   # Execute the user's script
