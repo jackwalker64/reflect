@@ -34,7 +34,7 @@ class Clip:
 
     Alternatively you may bind custom effect functions to the relevant class, e.g.
     >>> VideoClip.f = f
-    and then use it by
+    and then use it by calling
     >>> clip.f(*args, **kwargs)
     """
 
@@ -73,6 +73,8 @@ class VideoClip(Clip):
       # Add this new clip as a leaf in the graph containing the source(s)
       self.graph = self.source[0].graph
       self.graph.addLeaf(self)
+    else:
+      raise TypeError("expected source to be of type str or tuple, but received an object of type {}".format(type(self.source)))
 
     # Initialise this VideoClip's internal store of cached frames
     self.store = {}
@@ -80,6 +82,12 @@ class VideoClip(Clip):
 
 
   def __hash__(self):
+    """__hash__(self)
+
+    Two VideoClips have the same hash if their framegen closures are "equivalent", i.e. they have
+    the same source code and the same local variables.
+    """
+
     def subhash(o):
       """subhash(o)
 
@@ -91,15 +99,54 @@ class VideoClip(Clip):
       """
 
       if isinstance(o, imageio.core.Format.Reader):
-        # Readers should have the same hash iff they are readers of the same filepath
+        # Readers should have the same hash if they are readers of the same filepath
         return hash(o.request.filename)
       else:
         return hash(o)
 
     closureVarsDict = inspect.getclosurevars(self.framegen).nonlocals
     closureVarsTuple = tuple((varName, subhash(closureVarsDict[varName])) for varName in closureVarsDict)
+    closureSourceCode = inspect.getsource(self.framegen)
 
-    return hash(closureVarsTuple)
+    return hash((closureSourceCode, closureVarsTuple))
+
+
+
+  def __eq__(self, other):
+    """__eq__(self)
+
+    Two VideoClips are equal iff their framegen closures are "equivalent", i.e. they have the same
+    source code and the same local variables.
+    """
+
+    def subeq(a, b):
+      """subeq(a, b)
+
+      The purpose of this function is to provide custom equality functions for various classes,
+      without overriding the actual classes' definitions of __eq__.
+
+      This function will usually return a == b, but for some types of object, the behaviour will
+      be weaker.
+      """
+
+      if isinstance(a, imageio.core.Format.Reader) and isinstance(b, imageio.core.Format.Reader):
+        # Readers should be equal iff they are readers of the same filepath
+        return a.request.filename == b.request.filename
+      else:
+        return a == b
+
+    # Check that the source code is the same
+    if inspect.getsource(self.framegen) != inspect.getsource(other.framegen):
+      return False
+
+    # Check that the closure variable names are equal
+    closureVarsDictSelf = inspect.getclosurevars(self.framegen).nonlocals
+    closureVarsDictOther = inspect.getclosurevars(other.framegen).nonlocals
+    if sorted(closureVarsDictSelf.keys()) != sorted(closureVarsDictOther.keys()):
+      return False
+
+    # Check that the closure variable values are equal
+    return all([subeq(closureVarsDictSelf[varName], closureVarsDictOther[varName]) for varName in closureVarsDictSelf])
 
 
 
