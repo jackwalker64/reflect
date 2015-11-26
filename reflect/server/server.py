@@ -13,20 +13,27 @@ import reflect
 
 
 
-def start(filepath, alwaysRerunScripts = False):
+def start(filepath):
   logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET)
 
   logging.info("Starting the reflect server")
   logging.info("Watching {}".format(filepath))
 
   # Set up a handler to wait for the directory to be modified
-  eventHandler = WatchdogHandler(filepath, alwaysRerunScripts)
+  eventHandler = WatchdogHandler(filepath)
   observer = Observer()
   observer.schedule(eventHandler, path = os.path.dirname(filepath), recursive = False)
   observer.start()
   try:
     while True:
-      time.sleep(1)
+      key = reflect.util.getch()
+      if key == b"\x03" or key == b"q":
+        raise KeyboardInterrupt
+      elif key == b" ":
+        # Manually re-run the script
+        runUserScript(filepath)
+      else:
+        logging.error("Unrecognised command: {}".format(key.decode("utf8")))
   except KeyboardInterrupt:
     logging.info("Stopping")
     observer.stop()
@@ -35,30 +42,19 @@ def start(filepath, alwaysRerunScripts = False):
 
 
 class WatchdogHandler(FileSystemEventHandler):
-  def __init__(self, filepath, alwaysRerunScripts):
+  def __init__(self, filepath):
     self.filepath = filepath
     self.filehash = None
-    self.alwaysRerunScripts = alwaysRerunScripts
-    self.lastRunTime = 0
 
   def on_modified(self, event):
     # Check that the modified file is actually the one we're watching
     if os.path.realpath(event.src_path) == os.path.realpath(self.filepath):
-      if self.alwaysRerunScripts:
-        # Sometimes, multiple FileModifiedEvent will be received when the user saves their script.
-        # To avoid running the script for each of these events, we need to debounce.
-        currentTime = time.time()
-        if currentTime - self.lastRunTime > 2:
-          # The last run was more than 2 seconds ago, so we're ok to re-run it
-          self.lastRunTime = currentTime
-          runUserScript(self.filepath)
-      else:
-        # Check that the contents of the file really have changed
-        with open(self.filepath, "rb") as f:
-          newFilehash = hashlib.md5(f.read()).hexdigest()
-        if newFilehash != self.filehash:
-          self.filehash = newFilehash
-          runUserScript(self.filepath)
+      # Check that the contents of the file really have changed
+      with open(self.filepath, "rb") as f:
+        newFilehash = hashlib.md5(f.read()).hexdigest()
+      if newFilehash != self.filehash:
+        self.filehash = newFilehash
+        runUserScript(self.filepath)
 
 
 
