@@ -33,4 +33,10 @@ print("set([a, b, c, d, e, a2, b2]):")
 for x in s:
   print(x)
 # print("len(set([a, b, c, d, e, a2, b2])) == {}".format(len(s)))
+
 print("")
+print("a == a2: {}".format(a == a2))
+print("b == b2: {}".format(b == b2))
+print("a != b: {}".format(a != b))
+print("b != a: {}".format(b != a))
+print("c == d: {}".format(c == d))

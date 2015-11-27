@@ -48,12 +48,43 @@ def resize(clip, size = None, width = None, height = None):
   # Source: A single VideoClip to be resized
   source = (clip,)
 
-  # Framegen: Resize each frame to the specified dimensions
-  def framegen(n):
-    image = clip.frame(n)
-    return cv2.resize(image, (width, height), interpolation = cv2.INTER_AREA)
-
-  metadata = copy.copy(clip.metadata)
+  # Metadata: Update the dimensions
+  metadata = copy.copy(clip._metadata)
   metadata.size = (width, height)
 
-  return VideoClip(source, framegen, metadata)
+  return ResizedVideoClip(source, metadata)
+
+
+
+class ResizedVideoClip(VideoClip):
+  """ResizedVideoClip(source, metadata)
+
+  Represents a video clip that has had its frame width and height changed.
+  """
+
+
+
+  def __init__(self, source, metadata):
+    super().__init__(source, metadata)
+
+
+
+  def __hash__(self):
+    return super().__hash__()
+
+
+
+  def __eq__(self, other):
+    # self and other must both be of this class
+    if type(other) == type(self):
+      # The parent class parts must be the same
+      if super().__eq__(other):
+        return True
+
+    return False
+
+
+
+  def _framegen(self, n):
+    image = self._source[0].frame(n)
+    return cv2.resize(image, self.size, interpolation = cv2.INTER_AREA)

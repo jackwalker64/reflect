@@ -10,7 +10,7 @@ mode = "normal"
 
 
 
-class Clip:
+class Clip(object):
   """Clip()
 
   This is the base class from which VideoClip, AudioClip etc. are derived.
@@ -43,132 +43,69 @@ class Clip:
 
 
 class VideoClip(Clip):
-  """VideoClip()
+  """VideoClip(source, metadata)
 
   Represents a sequence of image frames.
   """
 
 
 
-  def __init__(self, source, framegen, metadata):
-    self.source = source
-    self.framegen = framegen
-    self.metadata = metadata
+  def __init__(self, source, metadata):
+    self._source = source
+    self._metadata = metadata
     # self.audio = audio
     # self.mask = mask
 
-    if type(self.source) == str:
+    if type(self._source) == str:
       # This VideoClip is sourced directly from a file, so this clip belongs in the default graph
       from .util import CompositionGraph
-      self.graph = CompositionGraph.current()
-      self.graph.addLeaf(self)
-    elif type(self.source) == tuple:
+      self._graph = CompositionGraph.current()
+      self._graph.addLeaf(self)
+    elif type(self._source) == tuple:
       # This VideoClip is sourced from one or more other clips, which are no longer leaves
-      for clip in self.source:
-        if clip.graph != self.source[0].graph:
+      for clip in self._source:
+        if clip._graph != self._source[0]._graph:
           raise Exception("the sources are not all in the same graph")
-        if clip.graph.isLeaf(clip):
-          clip.graph.removeLeaf(clip)
+        if clip._graph.isLeaf(clip):
+          clip._graph.removeLeaf(clip)
 
       # Add this new clip as a leaf in the graph containing the source(s)
-      self.graph = self.source[0].graph
-      self.graph.addLeaf(self)
+      self._graph = self._source[0]._graph
+      self._graph.addLeaf(self)
     else:
-      raise TypeError("expected source to be of type str or tuple, but received an object of type {}".format(type(self.source)))
-
-    # Initialise this VideoClip's internal store of cached frames
-    self.store = {}
+      raise TypeError("expected source to be of type str or tuple, but received an object of type {}".format(type(self._source)))
 
 
 
   def __hash__(self):
-    """__hash__(self)
-
-    Two VideoClips have the same hash if their framegen closures are "equivalent", i.e. they have
-    the same source code and the same local variables.
-    """
-
-    def subhash(o):
-      """subhash(o)
-
-      The purpose of this function is to provide custom hashing functions for various classes,
-      without overriding the actual classes' definitions of __hash__.
-
-      This function will usually return o.__hash__(), but for some types of o, the hashing
-      behaviour will be weaker.
-      """
-
-      if isinstance(o, imageio.core.Format.Reader):
-        # Readers should have the same hash if they are readers of the same filepath
-        return hash(o.request.filename)
-      else:
-        return hash(o)
-
-    closureVarsDict = inspect.getclosurevars(self.framegen).nonlocals
-    closureVarsTuple = tuple((varName, subhash(closureVarsDict[varName])) for varName in closureVarsDict)
-    closureSourceCode = inspect.getsource(self.framegen)
-
-    return hash((closureSourceCode, closureVarsTuple))
+    return hash((self._source, self._metadata))
 
 
 
   def __eq__(self, other):
-    """__eq__(self)
-
-    Two VideoClips are equal iff their framegen closures are "equivalent", i.e. they have the same
-    source code and the same local variables.
-    """
-
-    def subeq(a, b):
-      """subeq(a, b)
-
-      The purpose of this function is to provide custom equality functions for various classes,
-      without overriding the actual classes' definitions of __eq__.
-
-      This function will usually return a == b, but for some types of object, the behaviour will
-      be weaker.
-      """
-
-      if isinstance(a, imageio.core.Format.Reader) and isinstance(b, imageio.core.Format.Reader):
-        # Readers should be equal iff they are readers of the same filepath
-        return a.request.filename == b.request.filename
-      else:
-        return a == b
-
-    # Check that the source code is the same
-    if inspect.getsource(self.framegen) != inspect.getsource(other.framegen):
-      return False
-
-    # Check that the closure variable names are equal
-    closureVarsDictSelf = inspect.getclosurevars(self.framegen).nonlocals
-    closureVarsDictOther = inspect.getclosurevars(other.framegen).nonlocals
-    if sorted(closureVarsDictSelf.keys()) != sorted(closureVarsDictOther.keys()):
-      return False
-
-    # Check that the closure variable values are equal
-    return all([subeq(closureVarsDictSelf[varName], closureVarsDictOther[varName]) for varName in closureVarsDictSelf])
+    return self._source == other._source and self._metadata == other._metadata
 
 
 
   @property
   def size(self):
-    return self.metadata.size
+    return self._metadata.size
 
   @property
   def duration(self):
-    return self.metadata.duration
+    return self._metadata.duration
 
   @property
   def fps(self):
-    return self.metadata.fps
+    return self._metadata.fps
 
   @property
   def width(self):
-    return self.metadata.size[0]
+    return self._metadata.size[0]
 
   @property
   def height(self):
-    return self.metadata.size[1]
+    return self._metadata.size[1]
 
   @property
   def aspectRatio(self):
@@ -178,6 +115,12 @@ class VideoClip(Clip):
   @property
   def frameCount(self):
     return round(self.duration * self.fps)
+
+
+
+  def _framegen(self, n):
+    # _framegen must be implemented in the subclass.
+    raise NotImplementedError()
 
 
 
@@ -191,12 +134,12 @@ class VideoClip(Clip):
         return image
       else:
         # Render the frame, add it to the staging area of the cache, and then return it
-        image = self.framegen(n)
+        image = self._framegen(n)
         cache.stage(self, n, image)
         return image
     else:
       # We are not in server mode, so there is no cache and we should just render the frame
-      return self.framegen(n)
+      return self._framegen(n)
 
 
 
@@ -220,25 +163,5 @@ class VideoClipMetadata():
 
 
 
-def load(filepath):
-  """load(filepath)
-
-  Constructs and returns a Clip object representing the media at `filepath`.
-  The type of Clip returned depends on the kind of file.
-  """
-
-  if not os.path.exists(filepath):
-    raise IOError("The file \"{}\" does not exist.".format(os.path.realpath(filepath)))
-
-  # (currently assuming the file is a video file)
-  reader = imageio.get_reader(filepath)
-
-  source = filepath
-
-  def framegen(n):
-    return reader.get_data(n)
-
-  md = reader.get_meta_data()
-  metadata = VideoClipMetadata(md["size"], md["duration"], md["fps"])
-
-  return VideoClip(source, framegen, metadata)
+  def __eq__(self, other):
+    return self.size == other.size and self.duration == other.duration and self.fps == other.fps
