@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from ..clips import VideoClip, VideoClipMetadata
+from ..clips import VideoClip, VideoClipMetadata, clipMethod, memoizeHash
 import os
 import imageio
 
 
 
+@clipMethod
 def load(filepath):
   """load(filepath)
 
@@ -37,9 +38,9 @@ class LoadedVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, reader):
-    self._reader = reader
-
     super().__init__(source, metadata)
+
+    self._reader = reader
 
 
 
@@ -48,6 +49,7 @@ class LoadedVideoClip(VideoClip):
 
 
 
+  @memoizeHash
   def __hash__(self):
     return hash(self._reader.request.filename)
 

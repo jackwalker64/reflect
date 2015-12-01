@@ -42,6 +42,58 @@ class Clip(object):
 
 
 
+def memoizeHash(f):
+  """@memoizeHash
+
+  A simple decorator for permanently caching the result of __hash__.
+  """
+
+  def wrapper(self):
+    if not hasattr(self, "_memoizedHash"):
+      # __hash__ hasn't been called before on this instance.
+      self._memoizedHash = f(self)
+    return self._memoizedHash
+
+  return wrapper
+
+
+
+def clipMethod(f):
+  """@clipMethod
+
+  A decorator that calls f but additionally adds the result to the current CompositionGraph.
+  """
+
+  def wrapper(*args, **kwargs):
+    # Construct the clip
+    clip = f(*args, **kwargs)
+
+    # Before returning clip, add it to the appropriate graph
+    if type(clip._source) == str:
+      # This Clip is sourced directly from a file, so this clip belongs in the default graph
+      from .util import CompositionGraph
+      clip._graph = CompositionGraph.current()
+      clip._graph.addLeaf(clip)
+    elif type(clip._source) == tuple:
+      # This Clip is sourced from one or more other clips, which are no longer leaves
+      for sourceClip in clip._source:
+        if sourceClip._graph != clip._source[0]._graph:
+          raise Exception("the sources are not all in the same graph")
+        if sourceClip._graph.isLeaf(sourceClip):
+          sourceClip._graph.removeLeaf(sourceClip)
+
+      # Add this new clip as a leaf in the graph containing the source(s)
+      clip._graph = clip._source[0]._graph
+      clip._graph.addLeaf(clip)
+    else:
+      raise TypeError("expected source to be of type str or tuple, but received an object of type {}".format(type(clip._source)))
+
+    return clip
+
+  return wrapper
+
+
+
 class VideoClip(Clip):
   """VideoClip(source, metadata)
 
@@ -51,32 +103,17 @@ class VideoClip(Clip):
 
 
   def __init__(self, source, metadata):
+    # The hash of self can only be computed after calling Clip.__init__(self)
+    super().__init__()
+
     self._source = source
     self._metadata = metadata
     # self.audio = audio
     # self.mask = mask
 
-    if type(self._source) == str:
-      # This VideoClip is sourced directly from a file, so this clip belongs in the default graph
-      from .util import CompositionGraph
-      self._graph = CompositionGraph.current()
-      self._graph.addLeaf(self)
-    elif type(self._source) == tuple:
-      # This VideoClip is sourced from one or more other clips, which are no longer leaves
-      for clip in self._source:
-        if clip._graph != self._source[0]._graph:
-          raise Exception("the sources are not all in the same graph")
-        if clip._graph.isLeaf(clip):
-          clip._graph.removeLeaf(clip)
-
-      # Add this new clip as a leaf in the graph containing the source(s)
-      self._graph = self._source[0]._graph
-      self._graph.addLeaf(self)
-    else:
-      raise TypeError("expected source to be of type str or tuple, but received an object of type {}".format(type(self._source)))
 
 
-
+  @memoizeHash
   def __hash__(self):
     return hash((self._source, self._metadata))
 

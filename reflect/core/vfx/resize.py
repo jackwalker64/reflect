@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from ..clips import VideoClip
+from ..clips import VideoClip, clipMethod, memoizeHash
 import cv2
 import copy
 import inspect
 
 
 
+@clipMethod
 def resize(clip, size = None, width = None, height = None):
   """resize(clip, size = None, width = None, height = None)
 
@@ -69,6 +70,7 @@ class ResizedVideoClip(VideoClip):
 
 
 
+  @memoizeHash
   def __hash__(self):
     return super().__hash__()
 
