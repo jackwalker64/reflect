@@ -3,7 +3,6 @@
 from ..clips import VideoClip, clipMethod, memoizeHash
 import cv2
 import copy
-import inspect
 
 
 
