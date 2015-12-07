@@ -30,9 +30,9 @@ def resize(clip, size = None, width = None, height = None):
   if size != None:
     if width != None or height != None:
       raise TypeError("either specify size, or specify at least one of width and height")
-    elif type(size) == int or type(size) == float:
+    elif isinstance(size, int) or isinstance(size, float):
       (width, height) = (round(oldWidth * size), round(oldHeight * size))
-    elif type(size) == tuple:
+    elif isinstance(size, tuple):
       (width, height) = size
     else:
       raise TypeError("size must be either an int, a float, or a (width, height) pair")
