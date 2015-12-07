@@ -17,10 +17,10 @@ def composite(clip, fg, x1 = None, y1 = None, t1 = None, x2 = None, y2 = None, x
 
   Examples
   --------
-  >>> clip.composite(clip2, xc = clip.width / 2, yc = clip.height / 2) # overlays clip2 centred about clip's centre
-  >>> clip.composite(clip2, t1 = "1:00")                               # overlays clip2 at (0, 0) starting one minute after clip's beginning
-  >>> clip.composite(clip2, t2 = clip.duration)                        # overlays clip2 at the end of clip
-  >>> clip.composite(clip2, n1 = clip.frameCount / 2)                  # overlays clip2 starting halfway through clip
+  >>> clip.composite(clip2, xc = clip.width / 2, yc = clip.height / 2) # overlays `clip2` centred about `clip`'s centre
+  >>> clip.composite(clip2, t1 = "1:00")                               # overlays `clip2` at (0, 0) starting one minute after `clip`'s beginning
+  >>> clip.composite(clip2, t2 = clip.duration)                        # overlays `clip2` at the end of `clip`
+  >>> clip.composite(clip2, n1 = clip.frameCount / 2)                  # overlays `clip2` starting halfway through `clip`
   """
 
   if not isinstance(clip, VideoClip):
