@@ -23,7 +23,7 @@ def load(filepath):
   source = filepath
 
   md = reader.get_meta_data()
-  metadata = VideoClipMetadata(md["size"], md["duration"], md["fps"])
+  metadata = VideoClipMetadata(md["size"], md["nframes"], md["fps"])
 
   return LoadedVideoClip(source, metadata, reader)
 

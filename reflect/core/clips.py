@@ -130,7 +130,7 @@ class VideoClip(Clip):
 
   @property
   def duration(self):
-    return self._metadata.duration
+    return self.frameCount / self.fps
 
   @property
   def fps(self):
@@ -151,7 +151,7 @@ class VideoClip(Clip):
 
   @property
   def frameCount(self):
-    return round(self.duration * self.fps)
+    return self._metadata.frameCount
 
 
 
@@ -188,17 +188,17 @@ class VideoClipMetadata():
 
 
 
-  def __init__(self, size, duration, fps):
-    self.size = size         # (width, height) in pixels
-    self.duration = duration # duration in seconds
-    self.fps = fps           # frames per second
+  def __init__(self, size, frameCount, fps):
+    self.size = size             # (width, height) in pixels
+    self.frameCount = frameCount # total number of frames
+    self.fps = fps               # frames per second
 
 
 
   def __hash__(self):
-    return hash((self.size, self.duration, self.fps))
+    return hash((self.size, self.frameCount, self.fps))
 
 
 
   def __eq__(self, other):
-    return self.size == other.size and self.duration == other.duration and self.fps == other.fps
+    return self.size == other.size and self.frameCount == other.frameCount and self.fps == other.fps
