@@ -180,6 +180,45 @@ class VideoClip(Clip):
 
 
 
+  def save(self, filepath, **kwargs):
+    options = {
+      "uri": filepath,
+      "format": "FFMPEG",
+      "mode": "I",
+      "fps": self.fps,
+      "ffmpeg_params": []
+    }
+
+    if "codec" in kwargs:
+      options["codec"] = kwargs["codec"]
+    else:
+      options["codec"] = "libx264"
+
+    if "pixelformat" in kwargs:
+      options["pixelformat"] = kwargs["pixelformat"]
+    else:
+      options["pixelformat"] = "yuv420p"
+
+    if "quality" in kwargs:
+      options["quality"] = kwargs["quality"]
+    elif "bitrate" in kwargs:
+      options["bitrate"] = kwargs["bitrate"]
+    elif "crf" in kwargs:
+      options["ffmpeg_params"].extend(["-crf", str(kwargs["crf"])])
+    else:
+      options["ffmpeg_params"].extend(["-crf", "30"])
+
+    if "ffmpegParams" in kwargs:
+      options["ffmpeg_params"].extend(kwargs["ffmpegParams"])
+
+    writer = imageio.get_writer(**options)
+    for i in range(0, self.frameCount):
+      im = self.frame(i)
+      writer.append_data(im)
+    writer.close()
+
+
+
 class VideoClipMetadata():
   """VideoClipMetadata()
 
