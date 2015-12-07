@@ -91,9 +91,9 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
 
 
 class CroppedVideoClip(VideoClip):
-  """CroppedVideoClip(source, metadata)
+  """CroppedVideoClip(source, metadata, x1, y1, x2, y2)
 
-  Represents a video clip that has had its frame width and height changed.
+  Represents a subregion of a video clip.
   """
 
 
