@@ -7,8 +7,8 @@ import copy
 
 
 @clipMethod
-def composite(clip, fg, t1 = None, t2 = None, n1 = None, n2 = None, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None):
-  """composite(clip, fg, t1 = None, t2 = None, n1 = None, n2 = None, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None)
+def composite(clip, fg, x1 = None, y1 = None, t1 = None, x2 = None, y2 = None, xc = None, yc = None, t2 = None, n1 = None, n2 = None):
+  """composite(clip, fg, x1 = None, y1 = None, t1 = None, x2 = None, y2 = None, xc = None, yc = None, t2 = None, n1 = None, n2 = None)
 
   Returns `clip` with the `fg` clip overlaid on top of it.
 
