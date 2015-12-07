@@ -21,8 +21,7 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
   if not isinstance(clip, VideoClip):
     raise TypeError("crop requires a clip of type VideoClip")
 
-  (oldWidth, oldHeight) = clip.size
-
+  # If width was passed as an argument, then use it to deduce x1 and/or x2
   if width is not None:
     if x1 is not None:
       if x2 is not None:
@@ -39,6 +38,7 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
       x1 = 0
       x2 = width
 
+  # If height was passed as an argument, then use it to deduce y1 and/or y2
   if height is not None:
     if y1 is not None:
       if y2 is not None:
@@ -69,6 +69,7 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
   x2 = int(x2)
   y2 = int(y2)
 
+  # Check that the user-specified region is within the source clip's boundaries
   if x1 < 0:
     raise ValueError("the crop region exceeds the clip's left boundary by {} pixels (x1 = {})".format(-x1, x1))
   if y1 < 0:
