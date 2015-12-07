@@ -36,7 +36,8 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
       x1 = xc - width / 2
       x2 = xc + width / 2
     else:
-      raise TypeError("insufficient arguments: to specify width you must also specify x1 or x2 or xc")
+      x1 = 0
+      x2 = width
 
   if height is not None:
     if y1 is not None:
@@ -51,7 +52,8 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
       y1 = yc - height / 2
       y2 = yc + height / 2
     else:
-      raise TypeError("insufficient arguments: to specify height you must also specify y1 or y2 or yc")
+      y1 = 0
+      y2 = height
 
   if x1 is None:
     x1 = 0
