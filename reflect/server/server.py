@@ -60,11 +60,24 @@ class WatchdogHandler(FileSystemEventHandler):
 
 def runUserScript(filepath):
   print("")
+  print("")
+  print("")
   logging.info("{}: Entering {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(filepath)))
   print("")
 
-  # Reset the composition graph
-  oldGraph = reflect.CompositionGraph.swap(reflect.CompositionGraph())
+  # Close any open readers left over from the previous script
+  for reader in reflect.core.vfx.load.readers:
+    if not reader.closed:
+      print("Closing {}".format(reader))
+      reader.close()
+  reflect.core.vfx.load.readers = []
+
+  # Discard the old the composition graph
+  reflect.CompositionGraph.reset()
+
+  # Ensure any runtime render results are staged rather than immediately put into the main cache
+  cache = reflect.Cache.current()
+  cache.userScriptIsRunning = True
 
   # Construct the set of globals that will be passed to the user's script
   globs = { "__name__": "__main__" }
@@ -79,5 +92,16 @@ def runUserScript(filepath):
   print("")
   logging.info("{}: Exited {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(filepath)))
 
-  newGraph = reflect.CompositionGraph.current()
-  # TODO: Cache.usersScriptHasFinishedAndHereAreTheGraphsToCompare(oldGraph, newGraph)
+  print("")
+  logging.info(cache)
+  print("")
+  cache.userScriptIsRunning = False
+
+  # Update priorities according to the new composition graph
+  cache.reprioritise(reflect.CompositionGraph.current())
+
+  # TODO: Commit any staged frames into the main cache
+  # cache.commit()
+
+  print("")
+  logging.info(cache)

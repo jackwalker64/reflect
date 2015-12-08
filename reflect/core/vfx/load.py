@@ -6,6 +6,11 @@ import imageio
 
 
 
+# Keeps track of open readers
+readers = []
+
+
+
 @clipMethod
 def load(filepath):
   """load(filepath)
@@ -19,6 +24,7 @@ def load(filepath):
 
   # (currently assuming the file is a video file)
   reader = imageio.get_reader(filepath)
+  readers.append(reader)
 
   source = filepath
 

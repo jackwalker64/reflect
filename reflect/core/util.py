@@ -26,6 +26,17 @@ class CompositionGraph:
 
 
   @staticmethod
+  def reset():
+    """reset()
+
+    Discard the current graph and initialise a new, empty graph.
+    """
+
+    globals()["currentGraph"] = CompositionGraph()
+
+
+
+  @staticmethod
   def swap(newGraph):
     """swap(newGraph)
 

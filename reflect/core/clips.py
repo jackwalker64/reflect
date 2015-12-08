@@ -19,7 +19,7 @@ class Clip(object):
 
 
   def __init__(self):
-    pass
+    self.cacheEntry = None
 
 
 
@@ -61,7 +61,8 @@ def memoizeHash(f):
 def clipMethod(f):
   """@clipMethod
 
-  A decorator that calls f but additionally adds the result to the current CompositionGraph.
+  A decorator that calls f to construct a new clip, but additionally adds the new clip to the
+  appropriate CompositionGraph.
   """
 
   def wrapper(*args, **kwargs):
@@ -69,12 +70,12 @@ def clipMethod(f):
     clip = f(*args, **kwargs)
 
     # Before returning clip, add it to the appropriate graph
-    if type(clip._source) == str:
+    if isinstance(clip._source, str):
       # This Clip is sourced directly from a file, so this clip belongs in the default graph
       from .util import CompositionGraph
       clip._graph = CompositionGraph.current()
       clip._graph.addLeaf(clip)
-    elif type(clip._source) == tuple:
+    elif isinstance(clip._source, tuple):
       # This Clip is sourced from one or more other clips, which are no longer leaves
       for sourceClip in clip._source:
         if sourceClip._graph != clip._source[0]._graph:
@@ -170,9 +171,9 @@ class VideoClip(Clip):
         # The frame already exists in the cache, so don't bother re-rendering it
         return image
       else:
-        # Render the frame, add it to the staging area of the cache, and then return it
+        # Render the frame, offer it to the cache, and then return it
         image = self._framegen(n)
-        cache.stage(self, n, image)
+        cache.set(self, n, image)
         return image
     else:
       # We are not in server mode, so there is no cache and we should just render the frame
