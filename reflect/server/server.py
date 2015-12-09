@@ -19,6 +19,9 @@ def start(filepath):
   logging.info("Starting the reflect server")
   logging.info("Watching {}".format(filepath))
 
+  cache = reflect.Cache.current()
+  cache.maxSize = 100 * 1024 * 1024 # 100 MiB
+
   # Set up a handler to wait for the directory to be modified
   eventHandler = WatchdogHandler(filepath)
   observer = Observer()
@@ -68,7 +71,6 @@ def runUserScript(filepath):
   # Close any open readers left over from the previous script
   for reader in reflect.core.vfx.load.readers:
     if not reader.closed:
-      print("Closing {}".format(reader))
       reader.close()
   reflect.core.vfx.load.readers = []
 
