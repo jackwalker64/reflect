@@ -201,13 +201,36 @@ class VideoClip(Clip):
 
 
   def save(self, filepath, **kwargs):
+    videoExtensions = [".mov", ".avi", ".mpg", ".mpeg", ".mp4", ".mkv", ".wmv"]
+    for extension in videoExtensions:
+      if filepath.lower().endswith(extension):
+        self._saveVideo(filepath, **kwargs)
+        return
+
+    gifExtensions = [".gif"]
+    for extension in gifExtensions:
+      if filepath.lower().endswith(extension):
+        self._saveGif(filepath, **kwargs)
+        return
+
+    raise ValueError("Don't know how to write {}. Try giving a filepath with an extension like .mp4 or .gif or .png.".format(filepath))
+
+
+
+  def _saveVideo(self, filepath, **kwargs):
     options = {
       "uri": filepath,
       "format": "FFMPEG",
       "mode": "I",
-      "fps": self.fps,
       "ffmpeg_params": []
     }
+
+    if "fps" in kwargs:
+      options["fps"] = kwargs["fps"]
+    elif "delay" in kwargs:
+      options["fps"] = 1.0 / kwargs["delay"]
+    else:
+      options["fps"] = self.fps
 
     if "codec" in kwargs:
       options["codec"] = kwargs["codec"]
@@ -230,6 +253,53 @@ class VideoClip(Clip):
 
     if "ffmpegParams" in kwargs:
       options["ffmpeg_params"].extend(kwargs["ffmpegParams"])
+
+    writer = imageio.get_writer(**options)
+    for i in range(0, self.frameCount):
+      im = self.frame(i)
+      writer.append_data(im)
+    writer.close()
+
+
+
+  def _saveGif(self, filepath, **kwargs):
+    options = {
+      "uri": filepath,
+      "format": "GIF",
+      "mode": "I"
+    }
+
+    if "fps" in kwargs:
+      options["fps"] = float(kwargs["fps"])
+    elif "delay" in kwargs:
+      options["fps"] = 1.0 / kwargs["delay"]
+    else:
+      options["fps"] = self.fps
+
+    if "loops" in kwargs:
+      options["loop"] = kwargs["loops"] # number of loops
+    elif "loop" in kwargs:
+      if kwargs["loop"]:
+        options["loop"] = 0 # loop indefinitely
+      else:
+        options["loop"] = 1 # only play once, and then stop
+    else:
+      options["loop"] = 0 # loop indefinitely
+
+    if "paletteSize" in kwargs:
+      options["palettesize"] = kwargs["paletteSize"]
+    else:
+      options["palettesize"] = 256
+
+    if "quantiser" in kwargs:
+      options["quantizer"] = kwargs["quantiser"]
+    else:
+      options["quantizer"] = "wu"
+
+    if "optimise" in kwargs:
+      options["subrectangles"] = kwargs["optimise"]
+    else:
+      options["subrectangles"] = False
 
     writer = imageio.get_writer(**options)
     for i in range(0, self.frameCount):
