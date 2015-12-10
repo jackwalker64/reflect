@@ -6,34 +6,39 @@ import copy
 
 
 @clipMethod
-def speed(clip, scale = None, fps = None, delay = None):
-  """speed(clip, scale = None, fps = None, delay = None)
+def speed(clip, scale = None, duration = None, frameCount = None):
+  """speed(clip, scale = None, duration = None, frameCount = None)
 
   Returns a copy of `clip` whose frames will be delivered at a different rate.
 
+  The fps property of the clip will stay the same, but frames may be either duplicated or skipped.
+
+  Specify `scale` to multiply the speed of the clip by some scale factor.
+  Alternatively specify a new total clip `duration` or `frameCount` in order to compute `scale`
+  automatically.
+
   Examples
   --------
-  >>> clip.speed(2)        # Half of `clip`'s frames are essentially discarded.
-  >>> clip.speed(0.5)      # frame(2n) = frame(2n + 1).
-  >>> clip.speed(fps = 60) # If the previous fps was lower than 60 then some frames will be repeated.
+  >>> clip.speed(2)                 # Half of `clip`'s frames are essentially discarded.
+  >>> clip.speed(0.5)               # frame(2n) = frame(2n + 1).
+  >>> clip.speed(duration = "2:00") # Computes a scale factor so that the new clip is 2 minutes long.
   """
 
   if not isinstance(clip, VideoClip):
     raise TypeError("expected a clip of type VideoClip")
 
-  if scale is not None:
-    if fps is not None or delay is not None:
-      raise TypeError("only one of scale, fps, delay should be specified")
-    fps = clip.fps
-  elif fps is not None:
-    if delay is not None:
-      raise TypeError("only one of scale, fps, delay should be specified")
-    scale = clip.fps / fps
-  elif delay is not None:
-    fps = 1.0 / delay
-    scale = 1.0
-  else:
-    raise TypeError("expected one of scale, fps, delay to be specified")
+  if duration is not None:
+    if scale is not None or frameCount is not None:
+      raise TypeError("only one of scale, duration, frameCount should be specified")
+    frameCount = timecodeToFrame(duration, clip.fps)
+
+  if frameCount is not None:
+    if scale is not None:
+      raise TypeError("only one of scale, duration, frameCount should be specified")
+    scale = clip.frameCount / frameCount
+
+  if scale is None:
+    raise TypeError("expected one of scale, duration, frameCount to be specified")
 
   # Source: A single VideoClip
   source = (clip,)
@@ -41,14 +46,13 @@ def speed(clip, scale = None, fps = None, delay = None):
   # Metadata: Update the total number of frames and the fps
   metadata = copy.copy(clip._metadata)
   metadata.frameCount = int(metadata.frameCount / scale)
-  metadata.fps = float(fps)
 
-  return SpeedVideoClip(source, metadata, scale = scale)
-
+  return SpedVideoClip(source, metadata, scale = scale)
 
 
-class SpeedVideoClip(VideoClip):
-  """SpeedVideoClip(source, metadata, scale)
+
+class SpedVideoClip(VideoClip):
+  """SpedVideoClip(source, metadata, scale)
 
   Represents a video clip whose frame delivery rate has been changed.
   """
@@ -56,7 +60,7 @@ class SpeedVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, scale):
-    super().__init__(source, metadata)
+    super().__init__(source, metadata, isIndirection = True)
 
     self._scale = scale
 
