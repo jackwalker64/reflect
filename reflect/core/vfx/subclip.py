@@ -83,7 +83,7 @@ class SubVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, n1, n2):
-    super().__init__(source, metadata)
+    super().__init__(source, metadata, isIndirection = True)
 
     self._n1 = n1
     self._n2 = n2

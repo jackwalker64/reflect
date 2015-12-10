@@ -18,8 +18,12 @@ class Clip(object):
 
 
 
-  def __init__(self):
+  def __init__(self, isIndirection = False):
     self.cacheEntry = None
+
+    # If this clip doesn't actually apply changes to its source frames (as is the case with e.g.
+    # subclip, concat) then this clip's frames shouldn't be cached.
+    self._isIndirection = isIndirection
 
 
 
@@ -29,6 +33,12 @@ class Clip(object):
       return self._str
     except Exception as _:
       return self.__class__.__name__
+
+
+
+  @property
+  def isIndirection(self):
+    return self._isIndirection
 
 
 
@@ -112,9 +122,9 @@ class VideoClip(Clip):
 
 
 
-  def __init__(self, source, metadata):
+  def __init__(self, source, metadata, isIndirection = False):
     # The hash of self can only be computed after calling Clip.__init__(self)
-    super().__init__()
+    super().__init__(isIndirection = isIndirection)
 
     self._source = source
     self._metadata = metadata

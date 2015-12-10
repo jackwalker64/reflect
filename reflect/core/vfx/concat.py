@@ -52,7 +52,7 @@ class ConcatenatedVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata):
-    super().__init__(source, metadata)
+    super().__init__(source, metadata, isIndirection = True)
 
 
 

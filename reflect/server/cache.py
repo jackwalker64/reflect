@@ -113,6 +113,9 @@ class Cache:
     if self.userScriptIsRunning:
       self.stage(clip, n, data)
     else:
+      if clip.isIndirection:
+        # There's no point in caching this data, so reject it immediately
+        return
       while self._currentSize + data.nbytes > self.maxSize and self._priorityQueue.peek() is not None and self._priorityQueue.peek().priority < clip.cacheEntry.priority:
         # There isn't room in the cache, but there exists some cached data with a lower priority than the candidate clip's
         victim = self._priorityQueue.peek()
@@ -176,13 +179,14 @@ class Cache:
           # This node is a root
           cacheEntry = self._committed.get(node, None)
           if cacheEntry is None:
-            cacheEntry = CacheEntry(isRoot = True, isHotnode = True, precedesHotnode = False, rootDistance = 0)
+            cacheEntry = CacheEntry(isRoot = True, isHotnode = True, precedesHotnode = False, rootDistance = 0, isIndirection = node.isIndirection)
             self._committed[node] = cacheEntry
           else:
             cacheEntry.isRoot = True
             cacheEntry.isHotnode = (cacheEntry.age > 1) # True iff the node was not in the previous graph
             cacheEntry.precedesHotnode = False
             cacheEntry.rootDistance = 0
+            cacheEntry.isIndirection = node.isIndirection
             cacheEntry.age = 0
         elif isinstance(node._source, tuple):
           cacheEntry = self._committed.get(node, None)
@@ -198,14 +202,29 @@ class Cache:
               maxRootDistance = sourceCacheEntry.rootDistance
 
           if cacheEntry is None:
-            cacheEntry = CacheEntry(isRoot = False, isHotnode = True, precedesHotnode = False, rootDistance = maxRootDistance + 1)
+            cacheEntry = CacheEntry(isRoot = False, isHotnode = True, precedesHotnode = False, rootDistance = maxRootDistance + 1, isIndirection = node.isIndirection)
             self._committed[node] = cacheEntry
           else:
             cacheEntry.isRoot = False
             cacheEntry.isHotnode = (cacheEntry.age > 1) # True iff the node was not in the previous graph
             cacheEntry.precedesHotnode = False
             cacheEntry.rootDistance = maxRootDistance + 1
+            cacheEntry.isIndirection = node.isIndirection
             cacheEntry.age = 0
+
+          if cacheEntry.isIndirection:
+            # DFS to find all nodes that this node is an indirection of, i.e. the nodes containing
+            # the exact frames that this node may produce.
+            def dfs(node, indirection):
+              if isinstance(node._source, tuple):
+                for source in node._source:
+                  if not source.cacheEntry.isIndirection:
+                    if id(indirection) not in [id(associatedIndirection) for associatedIndirection in source.cacheEntry.associatedIndirections]:
+                      source.cacheEntry.associatedIndirections.append(indirection)
+                  else:
+                    # This source is also an indirection, so we must recurse
+                    dfs(source, indirection)
+            dfs(node, cacheEntry)
 
         node.cacheEntry = cacheEntry
         return cacheEntry
@@ -241,18 +260,19 @@ class Cache:
         pydotNode = visited[node]
         G.add_edge(pydotplus.Edge(pydotNode, pydotSuccessor))
       else:
+        keyNode = None
+        for potentialKey in self._committed:
+          if potentialKey == node:
+            keyNode = potentialKey
+            break
         if node.cacheEntry.isHotnode:
           fillColour = "#ff5555"
         elif node.cacheEntry.precedesHotnode:
           fillColour = "#8888ff"
         else:
           fillColour = "#ffffff"
-        keyNode = None
-        for potentialKey in self._committed:
-          if potentialKey == node:
-            keyNode = potentialKey
-            break
-        pydotNode = pydotplus.Node("{}\np={}\nn={}".format(keyNode, round(self._committed[keyNode].priority, 1), len(self._committed[keyNode])), style = "filled", fillcolor = fillColour)
+        notCacheable = node.cacheEntry.isIndirection
+        pydotNode = pydotplus.Node("{}\np={}\nn={}".format(keyNode, round(self._committed[keyNode].priority, 1), "N/A ({})".format(len(self._committed[keyNode])) if notCacheable else len(self._committed[keyNode])), style = "filled", fillcolor = fillColour)
         G.add_node(pydotNode)
         visited[node] = pydotNode
         if pydotSuccessor is not None:
@@ -286,7 +306,7 @@ class CacheEntry(dict):
 
 
 
-  def __init__(self, isRoot, isHotnode, precedesHotnode, rootDistance):
+  def __init__(self, isRoot, isHotnode, precedesHotnode, rootDistance, isIndirection):
     super().__init__()
 
     self.age = 0
@@ -294,6 +314,8 @@ class CacheEntry(dict):
     self.isHotnode = isHotnode
     self.precedesHotnode = precedesHotnode
     self.rootDistance = rootDistance
+    self.isIndirection = isIndirection
+    self.associatedIndirections = []
 
 
 
@@ -320,10 +342,23 @@ class CacheEntry(dict):
 
   @property
   def priority(self):
-    if self.precedesHotnode and not self.isHotnode:
-      return (self.rootDistance + 100.0) / (2**self.age)
+    if self.isIndirection:
+      return float("-inf")
+    elif self.associatedIndirections:
+      # An indirection of this node might have a higher priority than this node's raw priority, so find the maximum
+      maxPriorityFromAssociatedIndirections = max([indirection.rawPriority for indirection in self.associatedIndirections])
+      return max(self.rawPriority, maxPriorityFromAssociatedIndirections)
     else:
-      return self.rootDistance / (2**self.age)
+      return self.rawPriority
+
+
+
+  @property
+  def rawPriority(self):
+    if self.precedesHotnode and not self.isHotnode:
+      return (1.0 + self.rootDistance + 100.0) / (2**self.age)
+    else:
+      return (1.0 + self.rootDistance) / (2**self.age)
 
 
 
