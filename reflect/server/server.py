@@ -111,8 +111,5 @@ def runUserScript(filepath):
   reflect.core.vfx.load.readyReaders = {}
 
   # Make readers opened in the current session available to the next session
-  n = 0
-  for filepath, readers in reflect.core.vfx.load.openReaders.items():
-    n += len(readers)
   reflect.core.vfx.load.readyReaders = reflect.core.vfx.load.openReaders
   reflect.core.vfx.load.openReaders = {}
