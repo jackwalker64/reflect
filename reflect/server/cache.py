@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 
 
 class Cache:
@@ -164,6 +166,13 @@ class Cache:
     Side effects:
     * Each clip in `graph` has a `cacheEntry` property pointing to its entry in the cache.
     """
+
+    # Ensure that the precondition is met
+    for leaf in graph.leaves:
+      if leaf.cacheEntry is not None:
+        logging.warn("Attempted to reprioritise using a graph that has already been used to reprioritised.")
+        return
+      break
 
     # Sweep over the whole cache, incrementing each age counter (which will dampen priorities)
     for node, cacheEntry in self._committed.items():
