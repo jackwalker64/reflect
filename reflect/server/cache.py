@@ -127,7 +127,7 @@ class Cache:
         self._currentSize += data.nbytes
         currentVictim = self._priorityQueue.peek()
         if currentVictim is None or currentVictim.priority > clip.cacheEntry.priority:
-          self._priorityQueue.findNewVictim(start = 0) # TODO: Improve efficiency by instead implementing pq.setVictim(clip.cacheEntry)
+          self._priorityQueue.setVictim(clip.cacheEntry)
 
 
 
@@ -338,6 +338,11 @@ class PriorityQueue(object):
   def __init__(self, cache):
     self._cacheEntries = sorted(cache.values(), key = lambda entry: entry.priority)
 
+    # Create a map from cache entries to their index in the priority queue
+    self._cacheEntryIndices = {}
+    for i in range(len(self._cacheEntries)):
+      self._cacheEntryIndices[id(self._cacheEntries[i])] = i
+
     # Find the index of the lowest-priority nonempty cache entry
     self._victimIndex = None
     self.findNewVictim(start = 0)
@@ -366,4 +371,9 @@ class PriorityQueue(object):
       self._victimIndex = i
     else:
       self._victimIndex = None
+
+
+
+  def setVictim(self, cacheEntry):
+    self._victimIndex = self._cacheEntryIndices[id(cacheEntry)]
 
