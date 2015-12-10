@@ -36,7 +36,11 @@ def start(filepath):
         # Manually re-run the script
         runUserScript(filepath)
       else:
-        logging.error("Unrecognised command: {}".format(key.decode("utf8")))
+        try:
+          char = key.decode("utf8")
+          logging.error("Unrecognised command: {}".format(char))
+        except UnicodeDecodeError as _:
+          logging.error("Unrecognised command: {}".format(key))
   except KeyboardInterrupt:
     logging.info("Stopping")
     observer.stop()
