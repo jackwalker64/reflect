@@ -72,7 +72,6 @@ class Cache:
         committedBytes += image.nbytes
 
     return "<cache: ({} clips, {} frames, {} MiB) staged / ({} clips, {} frames, {} MiB) committed>".format(
-      # "{}.{}".format(self.__module__, self.__class__.__name__),
       stagedClips,
       stagedFrames,
       round(stagedBytes / 1024 / 1024, 1),
@@ -212,6 +211,16 @@ class Cache:
         return cacheEntry
     for leaf in graph.leaves:
       traverse(leaf)
+
+    # Get rid of cache entries that are old, empty, and have low priority
+    minimumPriority = 0.5 # Magic number
+    maximumAge = 5 # Magic number
+    clipsToPurge = []
+    for clip, cacheEntry in self._committed.items():
+      if cacheEntry.age > maximumAge and len(cacheEntry) == 0 and cacheEntry.priority < minimumPriority:
+        clipsToPurge.append(clip)
+    for clip in clipsToPurge:
+      del self._committed[clip]
 
     # Replace the priority queue
     self._priorityQueue = PriorityQueue(self._committed)
