@@ -28,7 +28,7 @@ class Clip(object):
     try:
       return self._str
     except Exception as _:
-      return super().__str__()
+      return self.__class__.__name__
 
 
 
