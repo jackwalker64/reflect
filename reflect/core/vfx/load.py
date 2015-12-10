@@ -3,6 +3,7 @@
 from ..clips import VideoClip, VideoClipMetadata, clipMethod, memoizeHash
 import os
 import imageio
+import collections
 
 
 
@@ -24,7 +25,7 @@ def load(filepath):
 
   if filepath in readyReaders:
     # Instead of creating a new ffmpeg process, reuse an existing one
-    reader = readyReaders[filepath].pop()
+    reader = readyReaders[filepath].popleft()
     if len(readyReaders[filepath]) == 0:
       del readyReaders[filepath]
   else:
@@ -33,7 +34,10 @@ def load(filepath):
   if filepath in openReaders:
     openReaders[filepath].append(reader)
   else:
-    openReaders[filepath] = [reader]
+    # Create a queue to hold all open readers of this file.
+    # A queue (as opposed to a stack) is used here so that LoadedVideoClips are more likely to pop
+    # readers that were used by equivalent LoadedVideoClips in the previous session.
+    openReaders[filepath] = collections.deque([reader])
 
   source = filepath
 
