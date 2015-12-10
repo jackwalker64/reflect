@@ -23,6 +23,15 @@ class Clip(object):
 
 
 
+  def __str__(self):
+    # Debug method, allowing the user to give readable names to nodes by setting the _str property
+    try:
+      return self._str
+    except Exception as _:
+      return super().__str__()
+
+
+
   def fx(self, f, *args, **kwargs):
     """fx(f, *args, **kwargs)
 

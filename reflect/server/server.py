@@ -65,14 +65,10 @@ def runUserScript(filepath):
   print("")
   print("")
   print("")
+  print("")
+  print("")
   logging.info("{}: Entering {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(filepath)))
   print("")
-
-  # Close any open readers left over from the previous script
-  for reader in reflect.core.vfx.load.readers:
-    if not reader.closed:
-      reader.close()
-  reflect.core.vfx.load.readers = []
 
   # Discard the old the composition graph
   reflect.CompositionGraph.reset()
@@ -107,3 +103,16 @@ def runUserScript(filepath):
 
   print("")
   logging.info(cache)
+
+  # Close readers that were opened in the previous session but not claimed in the current session
+  for filepath, readers in reflect.core.vfx.load.readyReaders.items():
+    for reader in readers:
+      reader.close()
+  reflect.core.vfx.load.readyReaders = {}
+
+  # Make readers opened in the current session available to the next session
+  n = 0
+  for filepath, readers in reflect.core.vfx.load.openReaders.items():
+    n += len(readers)
+  reflect.core.vfx.load.readyReaders = reflect.core.vfx.load.openReaders
+  reflect.core.vfx.load.openReaders = {}

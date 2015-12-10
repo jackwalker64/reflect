@@ -7,7 +7,8 @@ import imageio
 
 
 # Keeps track of open readers
-readers = []
+openReaders = {}
+readyReaders = {}
 
 
 
@@ -15,16 +16,24 @@ readers = []
 def load(filepath):
   """load(filepath)
 
-  Constructs and returns a Clip object representing the media at `filepath`.
-  The type of Clip returned depends on the kind of file.
+  Constructs and returns a VideoClip object representing the media at `filepath`.
   """
 
   if not os.path.exists(filepath):
     raise IOError("The file \"{}\" does not exist.".format(os.path.realpath(filepath)))
 
-  # (currently assuming the file is a video file)
-  reader = imageio.get_reader(filepath)
-  readers.append(reader)
+  if filepath in readyReaders:
+    # Instead of creating a new ffmpeg process, reuse an existing one
+    reader = readyReaders[filepath].pop()
+    if len(readyReaders[filepath]) == 0:
+      del readyReaders[filepath]
+  else:
+    reader = imageio.get_reader(filepath)
+
+  if filepath in openReaders:
+    openReaders[filepath].append(reader)
+  else:
+    openReaders[filepath] = [reader]
 
   source = filepath
 
@@ -47,11 +56,6 @@ class LoadedVideoClip(VideoClip):
     super().__init__(source, metadata)
 
     self._reader = reader
-
-
-
-  def __del__(self):
-    self._reader.close()
 
 
 
