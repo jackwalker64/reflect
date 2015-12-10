@@ -113,7 +113,7 @@ class Cache:
     if self.userScriptIsRunning:
       self.stage(clip, n, data)
     else:
-      while self._currentSize + data.nbytes > self.maxSize and self._priorityQueue.peek().priority < clip.cacheEntry.priority:
+      while self._currentSize + data.nbytes > self.maxSize and self._priorityQueue.peek() is not None and self._priorityQueue.peek().priority < clip.cacheEntry.priority:
         # There isn't room in the cache, but there exists some cached data with a lower priority than the candidate clip's
         victim = self._priorityQueue.peek()
         totalFreedBytes = victim.discardBytes(self._currentSize + data.nbytes - self.maxSize)

@@ -13,14 +13,14 @@ import reflect
 
 
 
-def start(filepath):
+def start(filepath, cacheSize):
   logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET)
 
   logging.info("Starting the reflect server")
   logging.info("Watching {}".format(filepath))
 
   cache = reflect.Cache.current()
-  cache.maxSize = 100 * 1024 * 1024 # 100 MiB
+  cache.maxSize = cacheSize
 
   # Set up a handler to wait for the directory to be modified
   eventHandler = WatchdogHandler(filepath)
