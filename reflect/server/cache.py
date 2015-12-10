@@ -129,7 +129,7 @@ class Cache:
         self._committed[clip][n] = data
         self._currentSize += data.nbytes
         currentVictim = self._priorityQueue.peek()
-        if currentVictim is None or currentVictim.priority > clip.cacheEntry.priority:
+        if currentVictim is None or currentVictim.priority >= clip.cacheEntry.priority:
           self._priorityQueue.setVictim(clip.cacheEntry)
 
 
@@ -378,7 +378,7 @@ class PriorityQueue(object):
     for i in range(len(self._cacheEntries)):
       self._cacheEntryIndices[id(self._cacheEntries[i])] = i
 
-    # Find the index of the lowest-priority nonempty cache entry
+    # Find the index of the leftmost lowest-priority nonempty cache entry
     self._victimIndex = None
     self.findNewVictim(start = 0)
 
@@ -393,11 +393,12 @@ class PriorityQueue(object):
 
 
   def findNewVictim(self, start = None):
-    # Find the index of the lowest-priority nonempty cache entry
+    # Find the index of the leftmost lowest-priority nonempty cache entry
     if start is not None:
       i = start
     else:
       i = self._victimIndex
+
     while i < len(self._cacheEntries) and len(self._cacheEntries[i]) == 0:
       i += 1
 
@@ -410,5 +411,9 @@ class PriorityQueue(object):
 
 
   def setVictim(self, cacheEntry):
-    self._victimIndex = self._cacheEntryIndices[id(cacheEntry)]
-
+    newVictimIndex = self._cacheEntryIndices[id(cacheEntry)]
+    if self._victimIndex is not None and self.peek().priority == cacheEntry.priority:
+      # Ensure the new victim is the *leftmost* cache entry of this priority
+      self._victimIndex = min(self._victimIndex, newVictimIndex)
+    else:
+      self._victimIndex = newVictimIndex
