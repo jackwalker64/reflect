@@ -145,8 +145,14 @@ class Cache:
 
 
   def commit(self):
-    # For each staged frame, either move it to the main cache or discard it (depending on its priority)
-    raise NotImplementedError()
+    if self.userScriptIsRunning:
+      raise Exception("Attempted to commit staged frames while a user script is still running")
+
+    # For each staged piece of data, either move it to the main cache or discard it (depending on its priority)
+    for clip, stagedEntry in self._staged.items():
+      for n, data in stagedEntry.items():
+        self.set(clip, n, data)
+    self._staged = {}
 
 
 

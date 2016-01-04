@@ -103,7 +103,7 @@ def runUserScript(filepath):
   cache.reprioritise(reflect.CompositionGraph.current())
 
   # TODO: Commit any staged frames into the main cache
-  # cache.commit()
+  cache.commit()
 
   print("")
   logging.info(cache)
