@@ -10,7 +10,7 @@ print("")
 
 
 
-reader = imageio.get_reader("../../examples/videos/bbb1080.mp4")
+reader = imageio.get_reader("D:\\Documents\\University\\Year 3\\_Project\\Media\\sources\\bbb_1080p_30fps.mp4")
 fps = reader.get_meta_data()["fps"]
 print("FPS of bbb1080.mp4: {}".format(fps))
 
