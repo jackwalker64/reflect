@@ -226,7 +226,7 @@ class VideoClip(Clip):
     }
 
     if "fps" in kwargs:
-      options["fps"] = kwargs["fps"]
+      options["fps"] = float(kwargs["fps"])
     elif "delay" in kwargs:
       options["fps"] = 1.0 / kwargs["delay"]
     else:
