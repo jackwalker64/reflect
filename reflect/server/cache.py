@@ -51,6 +51,8 @@ class Cache:
 
     self.userScriptIsRunning = False # Determines which store to send incoming frames to
 
+    self._stagingAreaIsLocked = False # Can be locked to temporarily prevent any frames from being staged
+
     self._currentSize = 0
     self.maxSize = maxSize
 
@@ -111,9 +113,26 @@ class Cache:
 
 
 
+  def lockStagingArea(self):
+    if self._stagingAreaIsLocked:
+      raise Exception("Attempted to lock the staging area, but it was already locked")
+    else:
+      self._stagingAreaIsLocked = True
+
+
+
+  def unlockStagingArea(self):
+    if not self._stagingAreaIsLocked:
+      raise Exception("Attempted to unlock the staging area, but it was already unlocked")
+    else:
+      self._stagingAreaIsLocked = False
+
+
+
   def set(self, clip, n, data):
     if self.userScriptIsRunning:
-      self.stage(clip, n, data)
+      if not self._stagingAreaIsLocked:
+        self.stage(clip, n, data)
     else:
       if clip.isIndirection:
         # There's no point in caching this data, so reject it immediately

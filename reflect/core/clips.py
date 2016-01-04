@@ -201,19 +201,34 @@ class VideoClip(Clip):
 
 
   def save(self, filepath, **kwargs):
+    saveMethod = None
+
     videoExtensions = [".mov", ".avi", ".mpg", ".mpeg", ".mp4", ".mkv", ".wmv"]
     for extension in videoExtensions:
       if filepath.lower().endswith(extension):
-        self._saveVideo(filepath, **kwargs)
-        return
+        saveMethod = self._saveVideo
 
     gifExtensions = [".gif"]
     for extension in gifExtensions:
       if filepath.lower().endswith(extension):
-        self._saveGif(filepath, **kwargs)
-        return
+        saveMethod = self._saveGif
 
-    raise ValueError("Don't know how to write {}. Try giving a filepath with an extension like .mp4 or .gif or .png.".format(filepath))
+    if saveMethod is not None:
+      if mode == "server":
+        # Potentially many frames are about to be rendered while the script is running.
+        # Normally these frames would be staged, to be committed to the cache when the script terminates.
+        # Here, however, that would result in staging an entire video's worth of frames.
+        # So we want to temporarily disable staging until the file has been saved.
+        from reflect.server.cache import Cache
+        cache = Cache.current()
+        cache.lockStagingArea()
+
+      saveMethod(filepath, **kwargs)
+
+      if mode == "server":
+        cache.unlockStagingArea()
+    else:
+      raise ValueError("Don't know how to write {}. Try giving a filepath with an extension like .mp4 or .gif or .png.".format(filepath))
 
 
 
