@@ -170,7 +170,7 @@ class Cache:
     # Ensure that the precondition is met
     for leaf in graph.leaves:
       if leaf.cacheEntry is not None:
-        logging.warn("Attempted to reprioritise using a graph that has already been used to reprioritised.")
+        logging.warn("Attempted to reprioritise using a graph that has already been used to reprioritise.")
         return
       break
 
