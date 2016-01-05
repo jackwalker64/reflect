@@ -10,6 +10,8 @@ import hashlib
 import traceback
 import datetime
 import reflect
+import queue
+import threading
 
 
 
@@ -27,23 +29,18 @@ def start(filepath, cacheSize):
   observer = Observer()
   observer.schedule(eventHandler, path = os.path.dirname(filepath), recursive = False)
   observer.start()
-  try:
-    while True:
-      key = reflect.util.getch()
-      if key == b"\x03" or key == b"q":
-        raise KeyboardInterrupt
-      elif key == b" ":
-        # Manually re-run the script
-        runUserScript(filepath)
-      else:
-        try:
-          char = key.decode("utf8")
-          logging.error("Unrecognised command: {}".format(char))
-        except UnicodeDecodeError as _:
-          logging.error("Unrecognised command: {}".format(key))
-  except KeyboardInterrupt:
-    logging.info("Stopping")
-    observer.stop()
+
+  # Set up a handler for any console input
+  forceQuit = queue.Queue() # If nonempty then the user has requested to quit via the console instead of via the pygame window
+  consoleHandler = ConsoleHandler(forceQuit)
+  consoleHandler.daemon = True
+  consoleHandler.start()
+
+  # Start the main pygame loop
+  previewWindow = reflect.window.Window(forceQuit)
+  previewWindow.run()
+
+  observer.stop()
   observer.join()
 
 
@@ -52,6 +49,8 @@ class WatchdogHandler(FileSystemEventHandler):
   def __init__(self, filepath):
     self.filepath = filepath
     self.filehash = None
+
+
 
   def on_modified(self, event):
     # Check that the modified file is actually the one we're watching
@@ -62,6 +61,35 @@ class WatchdogHandler(FileSystemEventHandler):
       if newFilehash != self.filehash:
         self.filehash = newFilehash
         runUserScript(self.filepath)
+
+
+
+class ConsoleHandler(threading.Thread):
+  def __init__(self, forceQuit):
+    super().__init__()
+
+    self._forceQuit = forceQuit
+
+
+
+  def run(self):
+    try:
+      while True:
+        key = reflect.util.getch()
+        if key == b"\x03" or key == b"q":
+          raise KeyboardInterrupt
+        elif key == b" ":
+          # Manually re-run the script
+          runUserScript(filepath)
+        else:
+          try:
+            char = key.decode("utf8")
+            logging.error("Unrecognised command: {}".format(char))
+          except UnicodeDecodeError as _:
+            logging.error("Unrecognised command: {}".format(key))
+    except KeyboardInterrupt:
+      logging.info("Stopping")
+      self._forceQuit.put(True) # Tell the main thread that it should terminate
 
 
 

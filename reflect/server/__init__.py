@@ -3,3 +3,4 @@
 from .server import *
 from .cache import *
 from .util import getch
+from .window import Window
