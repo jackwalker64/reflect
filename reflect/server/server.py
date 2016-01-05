@@ -32,7 +32,7 @@ def start(filepath, cacheSize):
 
   # Set up a handler for any console input
   forceQuit = queue.Queue() # If nonempty then the user has requested to quit via the console instead of via the pygame window
-  consoleHandler = ConsoleHandler(forceQuit)
+  consoleHandler = ConsoleHandler(filepath, forceQuit)
   consoleHandler.daemon = True
   consoleHandler.start()
 
@@ -65,9 +65,10 @@ class WatchdogHandler(FileSystemEventHandler):
 
 
 class ConsoleHandler(threading.Thread):
-  def __init__(self, forceQuit):
+  def __init__(self, filepath, forceQuit):
     super().__init__()
 
+    self._filepath = filepath
     self._forceQuit = forceQuit
 
 
@@ -80,7 +81,7 @@ class ConsoleHandler(threading.Thread):
           raise KeyboardInterrupt
         elif key == b" ":
           # Manually re-run the script
-          runUserScript(filepath)
+          runUserScript(self._filepath)
         else:
           try:
             char = key.decode("utf8")
