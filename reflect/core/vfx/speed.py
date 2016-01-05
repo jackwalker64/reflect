@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from ..clips import VideoClip, clipMethod, memoizeHash
+from ..util import timecodeToFrame
 import copy
 
 
