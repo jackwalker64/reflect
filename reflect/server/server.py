@@ -24,20 +24,20 @@ def start(filepath, cacheSize):
   cache = reflect.Cache.current()
   cache.maxSize = cacheSize
 
+  previewWindow = reflect.window.Window()
+
   # Set up a handler to wait for the directory to be modified
-  eventHandler = WatchdogHandler(filepath)
+  eventHandler = WatchdogHandler(filepath, previewWindow)
   observer = Observer()
   observer.schedule(eventHandler, path = os.path.dirname(filepath), recursive = False)
   observer.start()
 
   # Set up a handler for any console input
-  forceQuit = queue.Queue() # If nonempty then the user has requested to quit via the console instead of via the pygame window
-  consoleHandler = ConsoleHandler(filepath, forceQuit)
+  consoleHandler = ConsoleHandler(filepath, previewWindow)
   consoleHandler.daemon = True
   consoleHandler.start()
 
   # Start the main pygame loop
-  previewWindow = reflect.window.Window(forceQuit)
   previewWindow.run()
 
   observer.stop()
@@ -46,30 +46,31 @@ def start(filepath, cacheSize):
 
 
 class WatchdogHandler(FileSystemEventHandler):
-  def __init__(self, filepath):
-    self.filepath = filepath
-    self.filehash = None
+  def __init__(self, filepath, previewWindow):
+    self._filepath = filepath
+    self._filehash = None
+    self._previewWindow = previewWindow
 
 
 
   def on_modified(self, event):
     # Check that the modified file is actually the one we're watching
-    if os.path.realpath(event.src_path) == os.path.realpath(self.filepath):
+    if os.path.realpath(event.src_path) == os.path.realpath(self._filepath):
       # Check that the contents of the file really have changed
-      with open(self.filepath, "rb") as f:
+      with open(self._filepath, "rb") as f:
         newFilehash = hashlib.md5(f.read()).hexdigest()
-      if newFilehash != self.filehash:
-        self.filehash = newFilehash
-        runUserScript(self.filepath)
+      if newFilehash != self._filehash:
+        self._filehash = newFilehash
+        runUserScript(self._filepath, self._previewWindow)
 
 
 
 class ConsoleHandler(threading.Thread):
-  def __init__(self, filepath, forceQuit):
+  def __init__(self, filepath, previewWindow):
     super().__init__()
 
     self._filepath = filepath
-    self._forceQuit = forceQuit
+    self._previewWindow = previewWindow
 
 
 
@@ -81,7 +82,7 @@ class ConsoleHandler(threading.Thread):
           raise KeyboardInterrupt
         elif key == b" ":
           # Manually re-run the script
-          runUserScript(self._filepath)
+          runUserScript(self._filepath, self._previewWindow)
         else:
           try:
             char = key.decode("utf8")
@@ -90,11 +91,11 @@ class ConsoleHandler(threading.Thread):
             logging.error("Unrecognised command: {}".format(key))
     except KeyboardInterrupt:
       logging.info("Stopping")
-      self._forceQuit.put(True) # Tell the main thread that it should terminate
+      self._previewWindow.stop()
 
 
 
-def runUserScript(filepath):
+def runUserScript(filepath, previewWindow):
   print("")
   print("")
   print("")
@@ -131,7 +132,7 @@ def runUserScript(filepath):
   # Update priorities according to the new composition graph
   cache.reprioritise(reflect.CompositionGraph.current())
 
-  # TODO: Commit any staged frames into the main cache
+  # Commit any staged frames into the main cache
   cache.commit()
 
   print("")
@@ -146,3 +147,6 @@ def runUserScript(filepath):
   # Make readers opened in the current session available to the next session
   reflect.core.vfx.load.readyReaders = reflect.core.vfx.load.openReaders
   reflect.core.vfx.load.openReaders = {}
+
+  # Start a preview session for this script
+  previewWindow.startSession(reflect.CompositionGraph.current().leaves)
