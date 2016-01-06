@@ -115,11 +115,13 @@ def runUserScript(filepath, previewWindow):
   globs = { "__name__": "__main__" }
 
   # Execute the user's script
-  with open(filepath) as f:
+  error = False
+  with open(filepath, encoding = "utf-8") as f:
     try:
       exec(f.read(), globs)
-    except Exception as e:
+    except Exception:
       traceback.print_exc()
+      error = True
 
   print("")
   logging.info("{}: Exited {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(filepath)))
@@ -128,6 +130,10 @@ def runUserScript(filepath, previewWindow):
   logging.info(cache)
   print("")
   cache.userScriptIsRunning = False
+
+  if error:
+    cache.emptyStagingArea()
+    return
 
   # Update priorities according to the new composition graph
   cache.reprioritise(reflect.CompositionGraph.current())

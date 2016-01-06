@@ -163,6 +163,11 @@ class Cache:
 
 
 
+  def emptyStagingArea(self):
+    self._staged = {}
+
+
+
   def commit(self):
     if self.userScriptIsRunning:
       raise Exception("Attempted to commit staged frames while a user script is still running")
@@ -377,6 +382,8 @@ class CacheEntry(dict):
   @property
   def priority(self):
     if self.isIndirection:
+      return float("-inf")
+    elif self.isRoot:
       return float("-inf")
     elif self.associatedIndirections:
       # An indirection of this node might have a higher priority than this node's raw priority, so find the maximum
