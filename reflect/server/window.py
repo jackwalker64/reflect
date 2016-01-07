@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import time
 import pygame
 import imageio
@@ -7,6 +8,7 @@ import logging
 import queue
 import cv2
 import math
+from reflect.server import ScriptRunner
 
 
 
@@ -18,23 +20,31 @@ class Window(object):
 
 
 
-  def __init__(self):
+  def __init__(self, filepath):
     super().__init__()
+
+    self._filepath = filepath
 
     self._callQueue = queue.Queue()
 
     self._clock = pygame.time.Clock()
     self._fps = 20 # Defines the responsiveness of the GUI
 
-    self._windowWidth = 900
+    # Load resources
+    self._resources = {}
+    busyFrames = pygame.image.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../resources/busy.png"))
+    self._resources["busy"] = [busyFrames.subsurface(pygame.Rect(i * 16, 0, 16, 16)) for i in range(0, math.floor(busyFrames.get_width() / 16))]
 
+    # Set up the geometry of the window panels
+    self._windowWidth = 900
     self._tabstripPanel = pygame.Rect(0, 0, self._windowWidth, 25)
     self._displayPanel = pygame.Rect(0, self._tabstripPanel.bottom, self._windowWidth, 480)
     self._timelinePanel = pygame.Rect(0, self._displayPanel.bottom, self._windowWidth, 8)
     self._controlbarPanel = pygame.Rect(0, self._timelinePanel.bottom, self._windowWidth, 25)
-
     self._windowHeight = self._tabstripPanel.height + self._timelinePanel.height + self._controlbarPanel.height + self._displayPanel.height
 
+    # Show the initial panels
+    pygame.init()
     pygame.display.init()
     pygame.display.set_caption("Reflect")
     self._screen = pygame.display.set_mode((self._windowWidth, self._windowHeight))
@@ -43,11 +53,15 @@ class Window(object):
     self._screen.fill((127, 127, 127), rect = self._displayPanel)
     self._screen.fill((174, 174, 174), rect = self._timelinePanel)
     self._screen.fill((39, 40, 34), rect = self._controlbarPanel)
+    self._showText("To see the first preview, either save your script or click anywhere.")
     pygame.display.update()
 
-    self._running = True
+    self._running = True # Is the preview window currently active?
+    self.userScriptIsRunning = False # Is the user's script currently being executed?
 
-    self._leaves = None # List of leaf clips which can be previewed
+    self._busy = None
+
+    self._leaves = [] # List of leaf clips which can be previewed
     self._currentTab = None # Index of the currently visible leaf clip
     self._currentFrame = None
 
@@ -87,51 +101,128 @@ class Window(object):
           self._running = False
           break
 
-      for button, state in self._heldMouseButtons.items():
-        initialX, initialY = state["initialPosition"]
-        duration = state["duration"]
-        x, y = pygame.mouse.get_pos()
-        if button == 1:
-          # Left click
-          if self._timelinePanel.collidepoint(initialX, initialY):
-            # Seek to position
-            targetFrame = math.floor(x / self._timelinePanel.width * self._leaves[self._currentTab].frameCount)
-            if targetFrame >= self._leaves[self._currentTab].frameCount:
-              targetFrame = self._leaves[self._currentTab].frameCount - 1
-            elif targetFrame < 0:
-              targetFrame = 0
-            self._seek(n = targetFrame)
-        elif button == 2:
-          # Middle click
-          if self._displayPanel.collidepoint(x, y):
-            if duration == 0:
-              # Pause/unpause
-              self._playing = not self._playing
+      if not self._leaves:
+        # Check for a left click in the display area, which will trigger a script run
+        for button, state in self._heldMouseButtons.items():
+          initialX, initialY = state["initialPosition"]
+          duration = state["duration"]
+          if button == 1 and duration == 0 and self._displayPanel.collidepoint(initialX, initialY):
+            self._showText("")
+            ScriptRunner(self._filepath, self).start()
+      else:
+        # Handle mouse buttons that were clicked/held
+        for button, state in self._heldMouseButtons.items():
+          initialX, initialY = state["initialPosition"]
+          duration = state["duration"]
+          x, y = pygame.mouse.get_pos()
+          if button == 1:
+            # Left click
+            if self._timelinePanel.collidepoint(initialX, initialY):
+              # Seek to position
+              targetFrame = math.floor(x / self._timelinePanel.width * self._leaves[self._currentTab].frameCount)
+              if targetFrame >= self._leaves[self._currentTab].frameCount:
+                targetFrame = self._leaves[self._currentTab].frameCount - 1
+              elif targetFrame < 0:
+                targetFrame = 0
+              self._seek(n = targetFrame)
+          elif button == 2:
+            # Middle click
+            if self._displayPanel.collidepoint(x, y):
+              if duration == 0:
+                # Pause/unpause
+                self._playing = not self._playing
+
+        # Handle keys that were pressed/held
+        for key, duration in self._heldKeys.items():
+          if key == pygame.K_RIGHT:
+            if duration == 0 or duration > self._fps / 2:
+              # Go to the next frame
+              self._playing = False
+              self._seek(relative = 1)
+          elif key == pygame.K_LEFT:
+            if duration == 0 or duration > self._fps / 2:
+              # Go to the previous frame
+              self._playing = False
+              self._seek(relative = -1)
+
+        # If the video is currently playing, update the display
+        if self._playing:
+          self._seek(relative = 1) # Seek to the next frame
+
+      if self._busy is not None:
+        # Show the `self._busy`th busy indicator
+        busyRect = pygame.Rect(self._controlbarPanel.right - 25, self._controlbarPanel.top, 25, 25)
+        self._screen.fill((39, 40, 34), rect = busyRect)
+        self._screen.blit(self._resources["busy"][self._busy], (busyRect.left + 4, busyRect.top + 4))
+        pygame.display.update(busyRect)
+        if self._busy < len(self._resources["busy"]) - 1:
+          self._busy += 1
+        else:
+          self._busy = 0
+
       for button in self._heldMouseButtons:
         self._heldMouseButtons[button]["duration"] += 1 # Button has been held for one more frame
-
-      # Handle keys that were pressed/held
-      for key, duration in self._heldKeys.items():
-        if key == pygame.K_RIGHT:
-          if duration == 0 or duration > self._fps / 2:
-            # Go to the next frame
-            self._playing = False
-            self._seek(relative = 1)
-        elif key == pygame.K_LEFT:
-          if duration == 0 or duration > self._fps / 2:
-            # Go to the previous frame
-            self._playing = False
-            self._seek(relative = -1)
       for key in self._heldKeys:
         self._heldKeys[key] += 1 # Key has been held for one more frame
-
-      # If the video is currently playing, update the display
-      if self._playing:
-        self._seek(relative = 1) # Seek to the next frame
 
       self._clock.tick(self._fps)
 
     pygame.quit()
+
+
+
+  def stop(self, *args, **kwargs):
+    self._callQueue.put((self._stop, args, kwargs))
+
+  def _stop(self):
+    self._running = False
+
+
+
+  def startBusy(self, *args, **kwargs):
+    self._callQueue.put((self._startBusy, args, kwargs))
+
+  def _startBusy(self):
+    self._busy = 0 # Number of frames we have been busy for
+
+
+
+  def stopBusy(self, *args, **kwargs):
+    self._callQueue.put((self._stopBusy, args, kwargs))
+
+  def _stopBusy(self):
+    self._busy = None
+
+    busyRect = pygame.Rect(self._controlbarPanel.right - 25, self._controlbarPanel.top, 25, 25)
+    self._screen.fill((39, 40, 34), rect = busyRect)
+    pygame.display.update(busyRect)
+
+
+
+  def startSession(self, *args, **kwargs):
+    self._callQueue.put((self._startSession, args, kwargs))
+
+  def _startSession(self, leaves):
+    # Set up the leaves/tabs
+    self._leaves = list(leaves)
+    self._currentTab = 0
+    self._currentFrame = [0] * len(self._leaves) # For each leaf, start at the first frame
+
+    if self._leaves:
+      # Blit the first frame of the first leaf
+      self._updateDisplay()
+    else:
+      # The script hasn't produced any output
+      self._showText("The script didn't produce any previewable clips.")
+
+
+
+  def _showText(self, text):
+    font = pygame.font.SysFont("sans", 25)
+    text = font.render(text, True, (0, 0,0))
+    self._screen.fill((127, 127, 127), rect = self._displayPanel)
+    self._screen.blit(text, (self._displayPanel.centerx - text.get_width() / 2, self._displayPanel.centery - text.get_height() / 2))
+    pygame.display.update(self._displayPanel)
 
 
 
@@ -149,28 +240,6 @@ class Window(object):
     else:
       raise Exception("Expected exactly one argument but received zero")
 
-    self._updateDisplay()
-
-
-
-  def stop(self, *args, **kwargs):
-    self._callQueue.put((self._stop, args, kwargs))
-
-  def _stop(self):
-    self._running = False
-
-
-
-  def startSession(self, *args, **kwargs):
-    self._callQueue.put((self._startSession, args, kwargs))
-
-  def _startSession(self, leaves):
-    # Set up the leaves/tabs
-    self._leaves = list(leaves)
-    self._currentTab = 0
-    self._currentFrame = [0] * len(self._leaves) # For each leaf, start at the first frame
-
-    # Blit the first frame of the first leaf
     self._updateDisplay()
 
 
