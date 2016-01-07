@@ -28,7 +28,6 @@ class Window(object):
     self._callQueue = queue.Queue()
 
     self._clock = pygame.time.Clock()
-    self._fps = 20 # Defines the responsiveness of the GUI
 
     # Load resources
     self._resources = {}
@@ -160,10 +159,21 @@ class Window(object):
         else:
           self._busy = 0
 
+      # Update any keys or buttons that have been held for one more frame
       for button in self._heldMouseButtons:
-        self._heldMouseButtons[button]["duration"] += 1 # Button has been held for one more frame
+        self._heldMouseButtons[button]["duration"] += 1
       for key in self._heldKeys:
-        self._heldKeys[key] += 1 # Key has been held for one more frame
+        self._heldKeys[key] += 1
+
+      # Show the current fps in the window caption
+      reportedFps = self._clock.get_fps()
+      if reportedFps > self._fps:
+        # pygame.time.Clock should ensure this never happens, but it does anyway
+        reportedFps = self._fps
+      elif reportedFps >= 0.98 * self._fps:
+        # The fps is within 2% of the target. Avoid dancing around a near-perfect number by just reporting it as perfect.
+        reportedFps = self._fps
+      pygame.display.set_caption("Reflect ({:.2f} / {:.2f})".format(reportedFps, self._fps))
 
       self._clock.tick(self._fps)
 
@@ -226,6 +236,15 @@ class Window(object):
 
 
 
+  @property
+  def _fps(self):
+    if not self._leaves:
+      return 30
+    else:
+      return self._leaves[self._currentTab].fps
+
+
+
   def _seek(self, n = None, relative = None):
     if n is not None:
       if relative is not None:
@@ -245,6 +264,7 @@ class Window(object):
 
 
   def _updateDisplay(self):
+
     leaf = self._leaves[self._currentTab]
     n = self._currentFrame[self._currentTab]
 
@@ -296,3 +316,4 @@ class Window(object):
     pastRect = pygame.Rect(0, self._timelinePanel.top, handleRect.left, self._timelinePanel.height)
     self._screen.fill((241, 43, 36), rect = pastRect)
     pygame.display.update(self._timelinePanel)
+
