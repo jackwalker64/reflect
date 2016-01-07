@@ -170,8 +170,8 @@ class Window(object):
       if reportedFps > self._fps:
         # pygame.time.Clock should ensure this never happens, but it does anyway
         reportedFps = self._fps
-      elif reportedFps >= 0.98 * self._fps:
-        # The fps is within 2% of the target. Avoid dancing around a near-perfect number by just reporting it as perfect.
+      elif reportedFps >= 0.95 * self._fps:
+        # The fps is within 5% of the target. Avoid dancing around a near-perfect number by just reporting it as perfect.
         reportedFps = self._fps
       pygame.display.set_caption("Reflect ({:.2f} / {:.2f})".format(reportedFps, self._fps))
 
