@@ -55,10 +55,13 @@ class Window(object):
     self._currentFrame = 0
 
     self._heldKeys = {} # keycode → int. Keeps track of how many frames each key has been held for.
+    self._heldMouseButtons = {} # buttoncode → dict. Keeps track of how many frames each mouse button has been held for, and the position of the click.
 
 
 
   def run(self):
+    # Preview window event loop
+
     while self._running:
       # Handle any incoming method calls
       while not self._callQueue.empty():
@@ -69,15 +72,12 @@ class Window(object):
       # Process gui input
       for event in pygame.event.get():
         if event.type == pygame.MOUSEBUTTONDOWN:
-          x, y = pygame.mouse.get_pos()
-          if event.button == 2:
-            # Middle click
-            if self._displayPanel.collidepoint(x, y):
-              # Middle click within the display panel
-              self._playing = not self._playing
-          else:
-            # TODO: Implement buttons
-            pass
+          self._heldMouseButtons[event.button] = {
+            "initialPosition": pygame.mouse.get_pos(),
+            "duration": 0
+          }
+        elif event.type == pygame.MOUSEBUTTONUP:
+          del self._heldMouseButtons[event.button] # Button is no longer being held
         elif event.type == pygame.KEYDOWN:
           self._heldKeys[event.key] = 0 # Key has been held for 0 frames
         elif event.type == pygame.KEYUP:
@@ -87,6 +87,29 @@ class Window(object):
           self._running = False
           break
 
+      for button, state in self._heldMouseButtons.items():
+        initialX, initialY = state["initialPosition"]
+        duration = state["duration"]
+        x, y = pygame.mouse.get_pos()
+        if button == 1:
+          # Left click
+          if self._timelinePanel.collidepoint(initialX, initialY):
+            # Seek to position
+            targetFrame = math.floor(x / self._timelinePanel.width * self._leaves[self._currentTab].frameCount)
+            if targetFrame >= self._leaves[self._currentTab].frameCount:
+              targetFrame = self._leaves[self._currentTab].frameCount - 1
+            elif targetFrame < 0:
+              targetFrame = 0
+            self._seek(n = targetFrame)
+        elif button == 2:
+          # Middle click
+          if self._displayPanel.collidepoint(x, y):
+            if duration == 0:
+              # Pause/unpause
+              self._playing = not self._playing
+      for button in self._heldMouseButtons:
+        self._heldMouseButtons[button]["duration"] += 1 # Button has been held for one more frame
+
       # Handle keys that were pressed/held
       for key, duration in self._heldKeys.items():
         if key == pygame.K_RIGHT:
@@ -94,20 +117,17 @@ class Window(object):
             # Go to the next frame
             self._playing = False
             self._seek(relative = 1)
-            self._updateDisplay()
         elif key == pygame.K_LEFT:
           if duration == 0 or duration > self._fps / 2:
             # Go to the previous frame
             self._playing = False
             self._seek(relative = -1)
-            self._updateDisplay()
       for key in self._heldKeys:
         self._heldKeys[key] += 1 # Key has been held for one more frame
 
       # If the video is currently playing, update the display
       if self._playing:
         self._seek(relative = 1) # Seek to the next frame
-        self._updateDisplay()
 
       self._clock.tick(self._fps)
 
@@ -128,6 +148,8 @@ class Window(object):
         self._currentFrame[self._currentTab] += self._leaves[self._currentTab].frameCount
     else:
       raise Exception("Expected exactly one argument but received zero")
+
+    self._updateDisplay()
 
 
 
