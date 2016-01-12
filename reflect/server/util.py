@@ -34,3 +34,33 @@ class _GetchWindows:
     return msvcrt.getch()
 
 getch = _Getch()
+
+
+
+def prompt(default = "", buttonText = "Submit"):
+  import tkinter
+
+  root = tkinter.Tk()
+  e = tkinter.Entry(root)
+  e.pack()
+  e.insert(0, default)
+  e.focus_set()
+
+  response = None
+
+  def callback():
+    response = e.get()
+    root.destroy()
+
+  def setFocus():
+    root.focus_force()
+    e.focus_set()
+
+  b = tkinter.Button(root, text = buttonText, command = callback)
+  b.pack(side = tkinter.BOTTOM)
+
+  root.after(500, setFocus)
+
+  root.mainloop()
+
+  return response
