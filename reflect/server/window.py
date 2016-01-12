@@ -163,11 +163,11 @@ class Window(object):
           elif key == pygame.K_LEFT:
             if duration == 0 or duration > self._fps / 2:
               if pygame.K_LSHIFT in self._heldKeys or pygame.K_RSHIFT in self._heldKeys:
-                # + 5 s
+                # - 5 s
                 self._redrawPlayButton()
                 self._seek(relative = -self._fps * 5, loop = False)
               elif pygame.K_LCTRL in self._heldKeys or pygame.K_RCTRL in self._heldKeys:
-                # + 60 s
+                # - 60 s
                 self._redrawPlayButton()
                 self._seek(relative = -self._fps * 60, loop = False)
               else:
