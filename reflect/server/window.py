@@ -296,7 +296,7 @@ class Window(object):
         raise Exception("Expected exactly one of `n` or `relative`, but received both")
       self._currentFrame[self._currentTab] = n
     elif relative is not None:
-      self._currentFrame[self._currentTab] += relative
+      self._currentFrame[self._currentTab] += math.ceil(relative)
       frameCount = self._leaves[self._currentTab].frameCount
       if loop:
         if frameCount == 0:
