@@ -19,6 +19,8 @@ def main():
   defaultFilepath = "D:\\Documents\\University\\Year 3\\_Project\\Git\\reflect\\examples\\example.py"
   if args.debug:
     filepath = defaultFilepath
+    import os
+    os.environ['SDL_VIDEO_WINDOW_POS'] = "{},{}".format(2161, 270)
   else:
     filepath = args.filepath
 
