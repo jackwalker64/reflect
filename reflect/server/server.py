@@ -149,13 +149,13 @@ class ScriptRunner(threading.Thread):
     globs = { "__name__": "__main__" }
 
     # Execute the user's script
-    error = False
+    failed = False
     with open(self._filepath, encoding = "utf-8") as f:
       try:
         exec(f.read(), globs)
       except Exception:
         traceback.print_exc()
-        error = True
+        failed = True
 
     print("")
     logging.info("{}: Exited {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(self._filepath)))
@@ -165,7 +165,10 @@ class ScriptRunner(threading.Thread):
     print("")
     cache.userScriptIsRunning = False
 
-    if error:
+    if failed:
+      self._previewWindow.userScriptIsRunning = False
+      self._previewWindow.stopBusy()
+      self._previewWindow.startSession(set(), failed = True)
       cache.emptyStagingArea()
       return
 
