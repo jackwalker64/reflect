@@ -9,6 +9,7 @@ import queue
 import cv2
 import math
 from reflect.server import ScriptRunner
+from reflect.core.util import frameToTimecode
 
 
 
@@ -33,6 +34,8 @@ class Window(object):
     self._resources = {}
     busyFrames = pygame.image.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../resources/busy.png"))
     self._resources["busy"] = [busyFrames.subsurface(pygame.Rect(i * 16, 0, 16, 16)) for i in range(0, math.floor(busyFrames.get_width() / 16))]
+    playFrames = pygame.image.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../resources/play.png"))
+    self._resources["play"] = [playFrames.subsurface(pygame.Rect(i * 25, 0, 25, 25)) for i in range(0, 2)]
 
     # Set up the geometry of the window panels
     self._windowWidth = 900
@@ -124,12 +127,19 @@ class Window(object):
               elif targetFrame < 0:
                 targetFrame = 0
               self._seek(n = targetFrame)
+            elif self._controlbarPanel.collidepoint(initialX, initialY):
+              if duration == 0:
+                if initialX < self._controlbarPanel.left + 25:
+                  # Pause/unpause
+                  self._playing = not self._playing
+                  self._redrawPlayButton()
           elif button == 2:
             # Middle click
             if self._displayPanel.collidepoint(x, y):
               if duration == 0:
                 # Pause/unpause
                 self._playing = not self._playing
+                self._redrawPlayButton()
 
         # Handle keys that were pressed/held
         for key, duration in self._heldKeys.items():
@@ -137,12 +147,19 @@ class Window(object):
             if duration == 0 or duration > self._fps / 2:
               # Go to the next frame
               self._playing = False
+              self._redrawPlayButton()
               self._seek(relative = 1)
           elif key == pygame.K_LEFT:
             if duration == 0 or duration > self._fps / 2:
               # Go to the previous frame
               self._playing = False
+              self._redrawPlayButton()
               self._seek(relative = -1)
+          elif key == pygame.K_SPACE:
+            if duration == 0:
+              # Pause/unpause
+              self._playing = not self._playing
+              self._redrawPlayButton()
 
         # If the video is currently playing, update the display
         if self._playing:
@@ -223,7 +240,8 @@ class Window(object):
       self._showText("The script produced an error, see the console for details.")
     elif self._leaves:
       # Blit the first frame of the first leaf
-      self._updateDisplay()
+      self._redrawDisplay()
+      self._redrawPlayButton()
     else:
       # The script hasn't produced any output
       self._showText("The script didn't produce any previewable clips.")
@@ -232,7 +250,7 @@ class Window(object):
 
   def _showText(self, text):
     font = pygame.font.SysFont("sans", 25)
-    text = font.render(text, True, (0, 0,0))
+    text = font.render(text, True, (0, 0, 0))
     self._screen.fill((127, 127, 127), rect = self._displayPanel)
     self._screen.blit(text, (self._displayPanel.centerx - text.get_width() / 2, self._displayPanel.centery - text.get_height() / 2))
     pygame.display.update(self._displayPanel)
@@ -262,12 +280,12 @@ class Window(object):
     else:
       raise Exception("Expected exactly one argument but received zero")
 
-    self._updateDisplay()
+    self._redrawDisplay()
 
 
 
-  def _updateDisplay(self):
-
+  # Triggered when the current frame changes.
+  def _redrawDisplay(self):
     leaf = self._leaves[self._currentTab]
     n = self._currentFrame[self._currentTab]
 
@@ -309,14 +327,60 @@ class Window(object):
 
     pygame.display.update(self._displayPanel)
 
-    # Update the timeline
+    self._redrawTimeline(n, leaf)
+    self._redrawProgress(n, leaf)
+
+
+
+  def _redrawTimeline(self, n, leaf):
     self._screen.fill((174, 174, 174), rect = self._timelinePanel)
+
     handleWidth = self._timelinePanel.height
     handleHeight = handleWidth
     handleLeft = n / (leaf.frameCount - 1) * (self._timelinePanel.width - handleWidth)
     handleRect = pygame.Rect(handleLeft, self._timelinePanel.top, handleWidth, handleHeight)
     self._screen.fill((255, 255, 255), rect = handleRect)
+
     pastRect = pygame.Rect(0, self._timelinePanel.top, handleRect.left, self._timelinePanel.height)
     self._screen.fill((241, 43, 36), rect = pastRect)
+
     pygame.display.update(self._timelinePanel)
+
+
+
+  def _redrawPlayButton(self):
+    playButtonRect = pygame.Rect(self._controlbarPanel.left, self._controlbarPanel.top, 26, 25)
+
+    self._screen.fill((39, 40, 34), rect = playButtonRect)
+    pygame.draw.line(self._screen, (57, 58, 54), (playButtonRect.right - 1, playButtonRect.top), (playButtonRect.right - 1, playButtonRect.bottom))
+
+    self._screen.blit(self._resources["play"][1 if self._playing else 0], (self._controlbarPanel.left, self._controlbarPanel.top))
+
+    pygame.display.update(playButtonRect)
+
+
+
+  def _redrawProgress(self, n, leaf):
+    font = pygame.font.SysFont("Consolas", 12)
+    text1 = font.render("{} / {}".format(frameToTimecode(n, leaf.fps), frameToTimecode(leaf.frameCount, leaf.fps)), True, (255, 255, 255))
+    numberLength = math.floor(math.log10(leaf.frameCount)) + 1
+    text2 = font.render("{0: >{width}} / {1}".format(n, leaf.frameCount, width = numberLength), True, (255, 255, 255))
+
+    # progressWidth = text1.get_width() + text2.get_width() + 40
+    progressRect = pygame.Rect(self._controlbarPanel.left + 26, self._controlbarPanel.top, 400, 25)
+
+    self._screen.fill((39, 40, 34), rect = progressRect)
+
+    x = progressRect.left
+    y = progressRect.top
+    self._screen.blit(text1, (x + 9, y + 7))
+    x += text1.get_width() + 19
+    pygame.draw.line(self._screen, (57, 58, 54), (x, y), (x, y + 25))
+    x += 1
+
+    self._screen.blit(text2, (x + 9, y + 7))
+    x += text2.get_width() + 19
+    pygame.draw.line(self._screen, (57, 58, 54), (x, y), (x, y + 25))
+
+    pygame.display.update(progressRect)
 

@@ -140,3 +140,17 @@ def timecodeToFrame(t, fps):
   totalSeconds = s + m * 60 + h * 60 * 60
 
   return int(totalSeconds * fps)
+
+
+
+def frameToTimecode(n, fps):
+  """frameToTimecode(n, fps)
+
+  Converts the integer frame number `n` to a timecode "h:m:s".
+  """
+
+  (h, m_) = divmod(n, fps * 60 * 60)
+  (m, s_) = divmod(m_, fps * 60)
+  s = s_ / fps
+
+  return "{0:0>2.0f}:{1:0>2.0f}:{2:0>5.2f}".format(h, m, s)
