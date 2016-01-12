@@ -145,16 +145,38 @@ class Window(object):
         for key, duration in self._heldKeys.items():
           if key == pygame.K_RIGHT:
             if duration == 0 or duration > self._fps / 2:
-              # Go to the next frame
-              self._playing = False
-              self._redrawPlayButton()
-              self._seek(relative = 1)
+              if pygame.K_LSHIFT in self._heldKeys or pygame.K_RSHIFT in self._heldKeys:
+                # + 5 s
+                self._playing = False
+                self._redrawPlayButton()
+                self._seek(relative = self._fps * 5, loop = False)
+              elif pygame.K_LCTRL in self._heldKeys or pygame.K_RCTRL in self._heldKeys:
+                # + 60 s
+                self._playing = False
+                self._redrawPlayButton()
+                self._seek(relative = self._fps * 60, loop = False)
+              else:
+                # Go to the next frame
+                self._playing = False
+                self._redrawPlayButton()
+                self._seek(relative = 1)
           elif key == pygame.K_LEFT:
             if duration == 0 or duration > self._fps / 2:
-              # Go to the previous frame
-              self._playing = False
-              self._redrawPlayButton()
-              self._seek(relative = -1)
+              if pygame.K_LSHIFT in self._heldKeys or pygame.K_RSHIFT in self._heldKeys:
+                # + 5 s
+                self._playing = False
+                self._redrawPlayButton()
+                self._seek(relative = -self._fps * 5, loop = False)
+              elif pygame.K_LCTRL in self._heldKeys or pygame.K_RCTRL in self._heldKeys:
+                # + 60 s
+                self._playing = False
+                self._redrawPlayButton()
+                self._seek(relative = -self._fps * 60, loop = False)
+              else:
+                # Go to the previous frame
+                self._playing = False
+                self._redrawPlayButton()
+                self._seek(relative = -1)
           elif key == pygame.K_SPACE:
             if duration == 0:
               # Pause/unpause
@@ -266,19 +288,28 @@ class Window(object):
 
 
 
-  def _seek(self, n = None, relative = None):
+  def _seek(self, n = None, relative = None, loop = True):
     if n is not None:
       if relative is not None:
-        raise Exception("Expected exactly one argument but received two")
+        raise Exception("Expected exactly one of `n` or `relative`, but received both")
       self._currentFrame[self._currentTab] = n
     elif relative is not None:
       self._currentFrame[self._currentTab] += relative
-      if self._currentFrame[self._currentTab] >= self._leaves[self._currentTab].frameCount:
-        self._currentFrame[self._currentTab] -= self._leaves[self._currentTab].frameCount
-      elif self._currentFrame[self._currentTab] < 0:
-        self._currentFrame[self._currentTab] += self._leaves[self._currentTab].frameCount
+      frameCount = self._leaves[self._currentTab].frameCount
+      if loop:
+        if frameCount == 0:
+          raise Exception("Empty clip")
+        while self._currentFrame[self._currentTab] >= frameCount:
+          self._currentFrame[self._currentTab] -= frameCount
+        while self._currentFrame[self._currentTab] < 0:
+          self._currentFrame[self._currentTab] += frameCount
+      else:
+        if self._currentFrame[self._currentTab] >= frameCount:
+          self._currentFrame[self._currentTab] = frameCount - 1
+        elif self._currentFrame[self._currentTab] < 0:
+          self._currentFrame[self._currentTab] = 0
     else:
-      raise Exception("Expected exactly one argument but received zero")
+      raise Exception("Expected exactly one of `n` or `relative`, but received neither")
 
     self._redrawDisplay()
 
