@@ -43,6 +43,9 @@ class Window(object):
     self._displayPanel = pygame.Rect(0, self._tabstripPanel.bottom, self._windowWidth, 480)
     self._timelinePanel = pygame.Rect(0, self._displayPanel.bottom, self._windowWidth, 8)
     self._controlbarPanel = pygame.Rect(0, self._timelinePanel.bottom, self._windowWidth, 25)
+    self._controlbarPlayRect = pygame.Rect(self._controlbarPanel.left, self._controlbarPanel.top, 26, 25)
+    self._controlbarProgressTimecodeRect = None
+    self._controlbarProgressFrameRect = None
     self._windowHeight = self._tabstripPanel.height + self._timelinePanel.height + self._controlbarPanel.height + self._displayPanel.height
 
     # Show the initial panels
@@ -127,12 +130,11 @@ class Window(object):
               elif targetFrame < 0:
                 targetFrame = 0
               self._seek(n = targetFrame)
-            elif self._controlbarPanel.collidepoint(initialX, initialY):
+            elif self._controlbarPlayRect.collidepoint(initialX, initialY):
               if duration == 0:
-                if initialX < self._controlbarPanel.left + 25:
-                  # Pause/unpause
-                  self._playing = not self._playing
-                  self._redrawPlayButton()
+                # Pause/unpause
+                self._playing = not self._playing
+                self._redrawPlayButton()
           elif button == 2:
             # Middle click
             if self._displayPanel.collidepoint(x, y):
@@ -380,14 +382,14 @@ class Window(object):
 
 
   def _redrawPlayButton(self):
-    playButtonRect = pygame.Rect(self._controlbarPanel.left, self._controlbarPanel.top, 26, 25)
+    rect = self._controlbarPlayRect
 
-    self._screen.fill((39, 40, 34), rect = playButtonRect)
-    pygame.draw.line(self._screen, (57, 58, 54), (playButtonRect.right - 1, playButtonRect.top), (playButtonRect.right - 1, playButtonRect.bottom))
+    self._screen.fill((39, 40, 34), rect = rect)
+    pygame.draw.line(self._screen, (57, 58, 54), (rect.right - 1, rect.top), (rect.right - 1, rect.bottom))
 
     self._screen.blit(self._resources["play"][1 if self._playing else 0], (self._controlbarPanel.left, self._controlbarPanel.top))
 
-    pygame.display.update(playButtonRect)
+    pygame.display.update(rect)
 
 
 
@@ -397,20 +399,37 @@ class Window(object):
     numberLength = math.floor(math.log10(leaf.frameCount)) + 1
     text2 = font.render("{0: >{width}} / {1}".format(n, leaf.frameCount, width = numberLength), True, (255, 255, 255))
 
-    # progressWidth = text1.get_width() + text2.get_width() + 40
-    progressRect = pygame.Rect(self._controlbarPanel.left + 26, self._controlbarPanel.top, 400, 25)
+    self._controlbarProgressTimecodeRect = pygame.Rect(
+      self._controlbarPanel.left + 26,
+      self._controlbarPanel.top,
+      text1.get_width() + 20,
+      25
+    )
+    self._controlbarProgressFrameRect = pygame.Rect(
+      self._controlbarProgressTimecodeRect.right,
+      self._controlbarPanel.top,
+      text2.get_width() + 20,
+      25
+    )
+    progressRect = pygame.Rect(
+      self._controlbarProgressTimecodeRect.left,
+      self._controlbarPanel.top,
+      self._controlbarProgressTimecodeRect.width + self._controlbarProgressFrameRect.width,
+      25
+    )
 
     self._screen.fill((39, 40, 34), rect = progressRect)
 
-    x = progressRect.left
-    y = progressRect.top
+    x = self._controlbarProgressTimecodeRect.left
+    y = self._controlbarProgressTimecodeRect.top
     self._screen.blit(text1, (x + 9, y + 7))
-    x += text1.get_width() + 19
+    x = self._controlbarProgressTimecodeRect.right - 1
     pygame.draw.line(self._screen, (57, 58, 54), (x, y), (x, y + 25))
-    x += 1
 
+    x = self._controlbarProgressFrameRect.left
+    y = self._controlbarProgressFrameRect.top
     self._screen.blit(text2, (x + 9, y + 7))
-    x += text2.get_width() + 19
+    x = self._controlbarProgressFrameRect.right - 1
     pygame.draw.line(self._screen, (57, 58, 54), (x, y), (x, y + 25))
 
     pygame.display.update(progressRect)
