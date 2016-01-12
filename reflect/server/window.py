@@ -142,6 +142,23 @@ class Window(object):
                 # Pause/unpause
                 self._playing = not self._playing
                 self._redrawPlayButton()
+          elif button == 3:
+            # Right click
+            if self._displayPanel.collidepoint(x, y):
+              if duration == 0:
+                # Copy the current frame to the clipboard
+                import win32clipboard
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix = ".bmp", delete = False) as t:
+                  image = self._leaves[self._currentTab].frame(self._currentFrame[self._currentTab])
+                  imageio.imwrite(t.name, image)
+                  data = t.read()[14:]
+                os.remove(t.name)
+                win32clipboard.OpenClipboard()
+                win32clipboard.EmptyClipboard()
+                win32clipboard.SetClipboardData(win32clipboard.CF_DIB, data)
+                win32clipboard.CloseClipboard()
+                logging.info("Copied frame to the clipboard")
 
         # Handle keys that were pressed/held
         for key, duration in self._heldKeys.items():
@@ -180,6 +197,29 @@ class Window(object):
               # Pause/unpause
               self._playing = not self._playing
               self._redrawPlayButton()
+          elif key == pygame.K_F5:
+            if duration == 0:
+              # Save a snapshot
+              filepath = "{0}_{1:0>{width}}.png".format(
+                os.path.splitext(self._filepath)[0],
+                self._currentFrame[self._currentTab],
+                width = math.floor(math.log10(self._leaves[self._currentTab].frameCount)) + 1
+              )
+              if pygame.K_LCTRL in self._heldKeys or pygame.K_RCTRL in self._heldKeys:
+                # If CTRL is held, then let the user choose where to save the snapshot
+                import tkinter
+                from tkinter import filedialog
+                tkinter.Tk().withdraw() # Hide tkinter's root window
+                response = filedialog.asksaveasfilename(
+                  title = "Choose where to save the snapshot",
+                  defaultextension = ".png",
+                  filetypes = [("PNG image", "*.png")],
+                  initialfile = filepath,
+                )
+                filepath = response
+              if filepath:
+                imageio.imwrite(filepath, self._leaves[self._currentTab].frame(self._currentFrame[self._currentTab]))
+                logging.info("Saved frame to {}".format(filepath))
 
         # If the video is currently playing, update the display
         if self._playing:
