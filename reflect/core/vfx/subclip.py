@@ -63,6 +63,17 @@ def subclip(clip, n1 = None, n2 = None, frameCount = None, t1 = None, t2 = None,
   else:
     raise TypeError("insufficient arguments provided")
 
+  while n1 < 0:
+    n1 += clip.frameCount
+  while n1 >= clip.frameCount:
+    n1 -= clip.frameCount
+  while n2 < 1:
+    n2 += clip.frameCount
+  while n2 > clip.frameCount:
+    n2 -= clip.frameCount
+  if n1 > n2 or n1 < 0 or n1 >= clip.frameCount or n2 < 1 or n2 > clip.frameCount:
+    raise ValueError("invalid subclip parameters: n1 = {}, n2 = {}".format(n1, n2))
+
   # Source: A single VideoClip
   source = (clip,)
 
