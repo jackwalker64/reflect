@@ -47,7 +47,7 @@ def composite(clip, fg, x1 = None, y1 = None, t1 = None, x2 = None, y2 = None, x
     if t1 is not None:
       n1 = timecodeToFrame(t1, fps = clip.fps)
     if t2 is not None:
-      n2 = timecodeToFrameToFrame(t2, fps = clip.fps)
+      n2 = timecodeToFrame(t2, fps = clip.fps)
     if n2 is None:
       n2 = n1 + fg.frameCount
     if n1 is None:
