@@ -20,7 +20,7 @@ def main():
   if args.debug:
     filepath = defaultFilepath
     import os
-    os.environ['SDL_VIDEO_WINDOW_POS'] = "{},{}".format(2161, 270)
+    os.environ['SDL_VIDEO_WINDOW_POS'] = "{},{}".format(761, 270)
   else:
     filepath = args.filepath
 
