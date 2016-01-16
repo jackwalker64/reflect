@@ -294,7 +294,9 @@ class Cache:
     G = pydotplus.Dot(graph_type = "digraph")
 
     visited = {}
+    i = [1000]
     def traverse(node, pydotSuccessor):
+      i[0] += 1
       if node in visited:
         pydotNode = visited[node]
         G.add_edge(pydotplus.Edge(pydotNode, pydotSuccessor))
@@ -311,7 +313,7 @@ class Cache:
         else:
           fillColour = "#ffffff"
         notCacheable = node.cacheEntry.isIndirection
-        pydotNode = pydotplus.Node("{}\np={}\nn={}".format(keyNode, round(self._committed[keyNode].priority, 1), "N/A ({})".format(len(self._committed[keyNode])) if notCacheable else len(self._committed[keyNode])), style = "filled", fillcolor = fillColour)
+        pydotNode = pydotplus.Node("{}{}\np={}\nn={}".format(keyNode, i[0], round(self._committed[keyNode].priority, 1), "N/A ({})".format(len(self._committed[keyNode])) if notCacheable else len(self._committed[keyNode])), style = "filled", fillcolor = fillColour)
         G.add_node(pydotNode)
         visited[node] = pydotNode
         if pydotSuccessor is not None:
