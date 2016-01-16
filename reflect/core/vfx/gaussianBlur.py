@@ -75,7 +75,7 @@ class GaussianBlurredVideoClip(VideoClip):
 
   @memoizeHash
   def __hash__(self):
-    return super().__hash__()
+    return hash(super().__hash__(), self._size, self._sigma)
 
 
 
