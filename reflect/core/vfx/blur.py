@@ -73,7 +73,7 @@ class BlurredVideoClip(VideoClip):
 
   @memoizeHash
   def __hash__(self):
-    return hash(super().__hash__(), self._size)
+    return hash((super().__hash__(), self._size))
 
 
 
