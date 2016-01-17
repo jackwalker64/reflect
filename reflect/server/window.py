@@ -406,7 +406,10 @@ class Window(object):
 
     handleWidth = self._timelinePanel.height
     handleHeight = handleWidth
-    handleLeft = n / (leaf.frameCount - 1) * (self._timelinePanel.width - handleWidth)
+    if leaf.frameCount == 1:
+      handleLeft = 0
+    else:
+      handleLeft = n / (leaf.frameCount - 1) * (self._timelinePanel.width - handleWidth)
     handleRect = pygame.Rect(handleLeft, self._timelinePanel.top, handleWidth, handleHeight)
     self._screen.fill((255, 255, 255), rect = handleRect)
 

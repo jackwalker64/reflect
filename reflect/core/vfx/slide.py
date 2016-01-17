@@ -3,6 +3,7 @@
 from ..clips import VideoClip, clipMethod, memoizeHash
 from ..easing import linear
 import copy
+import numpy
 
 
 
@@ -37,7 +38,12 @@ def slide(clip, successor, origin, duration = None, frameCount = None, f = None)
       raise TypeError("expected exactly one of duration and frameCount, but received both")
     frameCount = int(duration * clip.fps)
   if f is None:
-    f = linear
+    f = linear # Default to a linear transition
+
+  if frameCount > clip.frameCount:
+    raise ValueError("expected the transition duration to be at most the duration of the input clip, but instead got frameCount = {}, clip.frameCount = {}".format(frameCount, successor.frameCount))
+  elif frameCount > successor.frameCount:
+    raise ValueError("expected the transition duration to be at most the duration of the input clip, but instead got frameCount = {}, successor.frameCount = {}".format(frameCount, clip.frameCount))
 
   if frameCount == 0:
     return clip.concat(successor)
@@ -45,7 +51,15 @@ def slide(clip, successor, origin, duration = None, frameCount = None, f = None)
   # Generate the transition
   transition = slideTransition(clip, successor, origin, frameCount, f)
 
-  return clip.subclip(0, -frameCount).concat(transition, successor.subclip(frameCount))
+  if frameCount == clip.frameCount:
+    if frameCount == successor.frameCount:
+      return transition
+    else:
+      return transition.concat(successor.subclip(frameCount))
+  elif frameCount == successor.frameCount:
+    return clip.subclip(0, -frameCount).concat(transition)
+  else:
+    return clip.subclip(0, -frameCount).concat(transition, successor.subclip(frameCount))
 
 
 
@@ -112,6 +126,7 @@ class SlideTransitionVideoClip(VideoClip):
       w = int(progress * clip.width)
       imageToBlit = successor.frame(n)[0:h, 0:w]
       x = clip.width - w
-      image[0:h, x:clip.width] = imageToBlit
+      blittedImage = numpy.copy(image)
+      blittedImage[0:h, x:clip.width] = imageToBlit
 
-    return image
+    return blittedImage
