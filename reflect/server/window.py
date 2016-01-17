@@ -294,7 +294,6 @@ class Window(object):
     self._leaves = list(leaves)
     self._currentTab = 0
     self._currentFrame = [0] * len(self._leaves) # For each leaf, start at the first frame
-
     if failed:
       # The user's script produced an error
       self._showText("The script produced an error, see the console for details.")

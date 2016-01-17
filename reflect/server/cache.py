@@ -2,6 +2,8 @@
 
 import logging
 
+visualise = False
+
 
 
 class Cache:
@@ -284,7 +286,8 @@ class Cache:
     self._priorityQueue = PriorityQueue(self._committed)
 
     # Debug
-    self.visualisePriorities(graph, "D:\\Desktop\\priorities.png")
+    if visualise:
+      self.visualisePriorities(graph, "D:\\Desktop\\priorities.png")
 
 
 
