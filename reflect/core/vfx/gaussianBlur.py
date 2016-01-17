@@ -58,7 +58,7 @@ def gaussianBlur(clip, size = None, width = None, height = None, sigmaX = 0, sig
 
 
 class GaussianBlurredVideoClip(VideoClip):
-  """GaussianBlurredVideoClip(source, metadata)
+  """GaussianBlurredVideoClip(source, metadata, size, sigma)
 
   Represents a video clip that has had each of its frames gaussian blurred.
   """

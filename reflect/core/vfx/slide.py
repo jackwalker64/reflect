@@ -73,7 +73,7 @@ def slideTransition(clip, successor, origin, frameCount, f):
 
 
 class SlideTransitionVideoClip(VideoClip):
-  """SlideTransitionVideoClip(source, metadata)
+  """SlideTransitionVideoClip(source, metadata, origin, frameCount, f)
 
   Represents the transition part of the result of clip.slide(successor, …).
   """

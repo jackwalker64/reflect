@@ -57,7 +57,7 @@ def blur(clip, size = None, width = None, height = None):
 
 
 class BlurredVideoClip(VideoClip):
-  """BlurredVideoClip(source, metadata)
+  """BlurredVideoClip(source, metadata, size)
 
   Represents a video clip that has had each of its frames blurred.
   """
