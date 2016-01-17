@@ -42,19 +42,19 @@ def text(text, font = None, size = 12, color = (0, 0, 0), background = None, bol
 
 
 class TextImageClip(ImageClip):
-  """TextImageClip(pygameFont, fontPath, size, text, antialias, color, background)
+  """TextImageClip(pygameFont, fontPath, fontSize, text, antialias, color, background)
 
   Represents an image of a rendered string of text.
   """
 
 
 
-  def __init__(self, pygameFont, fontPath, size, text, antialias, color, background):
-    super().__init__(None, pygameFont.size(text))
+  def __init__(self, pygameFont, fontPath, fontSize, text, antialias, color, background):
+    super().__init__(None, pygameFont.fontSize(text))
 
     self._pygameFont = pygameFont
     self._fontPath = fontPath
-    self._size = size
+    self._fontSize = fontSize
     self._text = text
     self._antialias = antialias
     self._color = color
@@ -64,7 +64,7 @@ class TextImageClip(ImageClip):
 
   @memoizeHash
   def __hash__(self):
-    return hash((super().__hash__(), self._fontPath, self._size, self._text, self._antialias, self._color, self._background))
+    return hash((super().__hash__(), self._fontPath, self._fontSize, self._text, self._antialias, self._color, self._background))
 
 
 
@@ -74,7 +74,7 @@ class TextImageClip(ImageClip):
       # The parent class parts must be the same
       if super().__eq__(other):
         # The parameters (except for the pygame font object) must be the same
-        if (self._fontPath, self._size, self._text, self._antialias, self._color, self._background) == (other._fontPath, other._size, other._text, other._antialias, other._color, other._background):
+        if (self._fontPath, self._fontSize, self._text, self._antialias, self._color, self._background) == (other._fontPath, other._fontSize, other._text, other._antialias, other._color, other._background):
           return True
 
     return False
