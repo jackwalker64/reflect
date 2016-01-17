@@ -373,7 +373,7 @@ class Window(object):
       height = self._displayPanel.height
       width = leaf.width / leaf.height * height
       top = self._displayPanel.top
-      left = (self._displayPanel.width - width) / 2
+      left = self._displayPanel.left + (self._displayPanel.width - width) / 2
       blitRect = pygame.Rect(left, top, width, height)
       if leaf.height > blitRect.height:
         # Downscale the frame to match the display panel's height
@@ -383,11 +383,11 @@ class Window(object):
       width = self._displayPanel.width
       height = leaf.height / leaf.width * width
       left = self._displayPanel.left
-      top = (self._displayPanel.height - height) / 2
+      top = self._displayPanel.top + (self._displayPanel.height - height) / 2
       blitRect = pygame.Rect(left, top, width, height)
       if leaf.width > blitRect.width:
         # Downscale the frame to match the display panel's width
-        image = cv2.resize(image, (blitRect.width, blitRect.width), interpolation = cv2.INTER_AREA)
+        image = cv2.resize(image, (blitRect.width, blitRect.height), interpolation = cv2.INTER_AREA)
 
     self._screen.fill((127, 127, 127), rect = self._displayPanel)
 
