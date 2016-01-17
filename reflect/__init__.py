@@ -7,6 +7,7 @@ from .server import *
 
 # Make the root functions easily accessibly as reflect.<fn>
 from .core.roots.load import load
+from .core.roots.text import text
 
 def setMode(mode):
   core.clips.mode = mode

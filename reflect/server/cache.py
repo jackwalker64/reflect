@@ -214,7 +214,7 @@ class Cache:
         # This node has already been visited
         return node.cacheEntry
       else:
-        if isinstance(node._source, str):
+        if isinstance(node._source, str) or node._source is None:
           # This node is a root
           cacheEntry = self._committed.get(node, None)
           if cacheEntry is None:
@@ -327,7 +327,8 @@ class Cache:
 
     for node in self._committed:
       if node not in visited:
-        G.add_node(pydotplus.Node("{}, {}".format(node, round(node.cacheEntry.priority, 1)), style = "filled", fillcolor = "#aaaaaa"))
+        i[0] += 1
+        G.add_node(pydotplus.Node("{}{}, {}".format(node, i[0], round(node.cacheEntry.priority, 1)), style = "filled", fillcolor = "#aaaaaa"))
 
     G.write_png(filepath)
 

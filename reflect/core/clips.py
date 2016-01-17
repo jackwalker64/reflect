@@ -89,8 +89,8 @@ def clipMethod(f):
     clip = f(*args, **kwargs)
 
     # Before returning clip, add it to the appropriate graph
-    if isinstance(clip._source, str):
-      # This Clip is sourced directly from a file, so this clip belongs in the default graph
+    if isinstance(clip._source, str) or clip._source is None:
+      # This Clip is either sourced directly from a file, or can be generated from no sources, so this clip belongs in the default graph
       from .util import CompositionGraph
       clip._graph = CompositionGraph.current()
       clip._graph.addLeaf(clip)
@@ -140,7 +140,7 @@ class VideoClip(Clip):
 
 
   def __eq__(self, other):
-    return self._source == other._source and self._metadata == other._metadata
+    return type(self) == type(other) and self._source == other._source and self._metadata == other._metadata
 
 
 
@@ -346,3 +346,58 @@ class VideoClipMetadata():
 
   def __eq__(self, other):
     return self.size == other.size and self.frameCount == other.frameCount and self.fps == other.fps
+
+
+
+class ImageClip(VideoClip):
+  """ImageClip(source, size)
+
+  Represents a single image, e.g. a loaded png or some rendered text.
+  """
+
+
+
+  def __init__(self, source, size):
+    super().__init__(source, VideoClipMetadata(size = size, frameCount = 1, fps = 30))
+
+    self._image = None
+
+
+
+  @memoizeHash
+  def __hash__(self):
+    return hash((self._source, self._metadata))
+
+
+
+  def __eq__(self, other):
+    return type(self) == type(other) and self._source == other._source and self._metadata == other._metadata
+
+
+
+  def _imagegen(self):
+    # _imagegen must be implemented in the subclass.
+    raise NotImplementedError()
+
+
+
+  def frame(self, n):
+    if mode == "server":
+      from reflect.server.cache import Cache
+      cache = Cache.current()
+      image = cache.get(self, 0, None)
+      if image is not None:
+        # The image already exists in the cache, so don't bother re-rendering it
+        return image
+      else:
+        # Render the image, offer it to the cache, and then return it
+        image = self._imagegen()
+        cache.set(self, 0, image)
+        return image
+    else:
+      # We are not in server mode, so there is no cache.
+      # However it might be useful to cache the rendered image locally in this object, in
+      # case this frame method is called frequently.
+      if self._image is None:
+        self._image = self._imagegen()
+      return self._image
