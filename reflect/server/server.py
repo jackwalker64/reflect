@@ -182,14 +182,14 @@ class ScriptRunner(threading.Thread):
     logging.info(cache)
 
     # Close readers that were opened in the previous session but not claimed in the current session
-    for self._filepath, readers in reflect.core.vfx.load.readyReaders.items():
+    for self._filepath, readers in reflect.core.roots.load.readyReaders.items():
       for reader in readers:
         reader.close()
-    reflect.core.vfx.load.readyReaders = {}
+    reflect.core.roots.load.readyReaders = {}
 
     # Make readers opened in the current session available to the next session
-    reflect.core.vfx.load.readyReaders = reflect.core.vfx.load.openReaders
-    reflect.core.vfx.load.openReaders = {}
+    reflect.core.roots.load.readyReaders = reflect.core.roots.load.openReaders
+    reflect.core.roots.load.openReaders = {}
 
     # Start a preview session for this script
     self._previewWindow.userScriptIsRunning = False
