@@ -99,7 +99,7 @@ class CroppedVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, x1, y1, x2, y2):
-    super().__init__(source, metadata)
+    super().__init__(source, metadata, isIndirection = True)
 
     self._x1 = x1
     self._y1 = y1
