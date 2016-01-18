@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from ..clips import VideoClip, clipMethod, memoizeHash
-from ..util import timecodeToFrame
+from ..util import timecodeToFrame, interpretSubclipParameters
 import copy
 
 
@@ -63,12 +63,7 @@ def subclip(clip, n1 = None, n2 = None, frameCount = None, t1 = None, t2 = None,
   else:
     raise TypeError("insufficient arguments provided")
 
-  if n1 < 0:
-    n1 += clip.frameCount
-  if n2 < 0:
-    n2 += clip.frameCount
-  if n1 > n2 or n1 < 0 or n1 >= clip.frameCount or n2 < 1 or n2 > clip.frameCount:
-    raise ValueError("invalid subclip parameters: n1 = {}, n2 = {}, frameCount = {}".format(n1, n2, clip.frameCount))
+  (n1, n2) = interpretSubclipParameters(n1, n2, clip.frameCount)
 
   # Source: A single VideoClip
   source = (clip,)
@@ -90,7 +85,7 @@ class SubVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, n1, n2):
-    super().__init__(source, metadata, isIndirection = True)
+    super().__init__(source, metadata, isIndirection = True, isConstant = source[0]._isConstant)
 
     self._n1 = n1
     self._n2 = n2

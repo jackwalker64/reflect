@@ -169,6 +169,5 @@ class LoadedImageClip(ImageClip):
 
 
   def _imagegen(self):
-    print("gen {}".format(self))
     image = self._reader.get_data(0) # Load the image into memory
     return image

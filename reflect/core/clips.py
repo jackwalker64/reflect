@@ -18,12 +18,15 @@ class Clip(object):
 
 
 
-  def __init__(self, isIndirection = False):
+  def __init__(self, isIndirection = False, isConstant = False):
     self.cacheEntry = None
 
     # If this clip doesn't actually apply changes to its source frames (as is the case with e.g.
     # subclip, concat) then this clip's frames shouldn't be cached.
     self._isIndirection = isIndirection
+
+    # If every frame of this clip is the same then we can avoid re-rendering/re-caching them.
+    self._isConstant = isConstant
 
 
 
@@ -122,14 +125,17 @@ class VideoClip(Clip):
 
 
 
-  def __init__(self, source, metadata, isIndirection = False):
+  def __init__(self, source, metadata, isIndirection = False, isConstant = False):
     # The hash of self can only be computed after calling Clip.__init__(self)
-    super().__init__(isIndirection = isIndirection)
+    super().__init__(isIndirection = isIndirection, isConstant = isConstant)
 
     self._source = source
     self._metadata = metadata
     # self.audio = audio
     # self.mask = mask
+
+    self._constantImage = None # Used as a local cache when not in server mode
+
 
 
 
@@ -182,6 +188,9 @@ class VideoClip(Clip):
 
 
   def frame(self, n):
+    if self._isConstant:
+      n = 0 # Redirect the request to be for the first frame only, to avoid rendering/caching the same image multiple times
+
     if mode == "server":
       from reflect.server.cache import Cache
       cache = Cache.current()
@@ -195,8 +204,15 @@ class VideoClip(Clip):
         cache.set(self, n, image)
         return image
     else:
-      # We are not in server mode, so there is no cache and we should just render the frame
-      return self._framegen(n)
+      # We are not in server mode, so there is no global cache.
+      if self._isConstant:
+        # It might be useful to cache the rendered image locally in this object, in
+        # case this frame method is called frequently.
+        if self._constantImage is None:
+          self._constantImage = self._framegen(0)
+        return self._constantImage
+      else:
+        return self._framegen(n)
 
 
 
@@ -358,7 +374,7 @@ class ImageClip(VideoClip):
 
 
   def __init__(self, source, size):
-    super().__init__(source, VideoClipMetadata(size = size, frameCount = 1, fps = 30))
+    super().__init__(source, VideoClipMetadata(size = size, frameCount = 1, fps = 30), isConstant = True)
 
     self._image = None
 
@@ -375,29 +391,12 @@ class ImageClip(VideoClip):
 
 
 
+  def _framegen(self, n):
+    # The value of n is irrelevant.
+    return self._imagegen()
+
+
+
   def _imagegen(self):
     # _imagegen must be implemented in the subclass.
     raise NotImplementedError()
-
-
-
-  def frame(self, n):
-    if mode == "server":
-      from reflect.server.cache import Cache
-      cache = Cache.current()
-      image = cache.get(self, 0, None)
-      if image is not None:
-        # The image already exists in the cache, so don't bother re-rendering it
-        return image
-      else:
-        # Render the image, offer it to the cache, and then return it
-        image = self._imagegen()
-        cache.set(self, 0, image)
-        return image
-    else:
-      # We are not in server mode, so there is no cache.
-      # However it might be useful to cache the rendered image locally in this object, in
-      # case this frame method is called frequently.
-      if self._image is None:
-        self._image = self._imagegen()
-      return self._image

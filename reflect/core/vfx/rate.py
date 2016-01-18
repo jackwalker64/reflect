@@ -51,7 +51,7 @@ class ChangedRateVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata):
-    super().__init__(source, metadata, isIndirection = True)
+    super().__init__(source, metadata, isIndirection = True, isConstant = source[0]._isConstant)
 
 
 

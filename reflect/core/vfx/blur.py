@@ -65,7 +65,7 @@ class BlurredVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, size):
-    super().__init__(source, metadata)
+    super().__init__(source, metadata, isConstant = source[0]._isConstant)
 
     self._size = size
 

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from ..clips import VideoClip, clipMethod, memoizeHash
-from ..util import timecodeToFrame
+from ..util import timecodeToFrame, interpretSubclipParameters
 import copy
+import numpy
 
 
 
@@ -92,29 +93,47 @@ def composite(clip, fg, x1 = None, y1 = None, t1 = None, x2 = None, y2 = None, x
   x1 = int(x1)
   y1 = int(y1)
 
-  # Sources: The base clip, and the foreground clip
-  source = (clip, fg)
+  (n1, n2) = interpretSubclipParameters(n1, n2, clip.frameCount)
 
-  # Metadata: Exactly the same as the base clip's
-  metadata = copy.copy(clip._metadata)
+  if n1 == n2:
+    return clip
 
-  return CompositeVideoClip(source, metadata, n1 = n1, n2 = n2, x1 = x1, y1 = y1)
+  # Generate the CompositeVideoClip part
+  middle = compositePart(clip, fg, n1, n2, x1, y1)
+
+  # Stitch the before, middle, and after parts together
+  if n1 == 0:
+    if n2 == clip.frameCount:
+      return middle
+    else:
+      return middle.concat(clip.subclip(n2))
+  else:
+    if n2 == clip.frameCount:
+      return clip.subclip(0, n1).concat(middle)
+    else:
+      return clip.subclip(0, n1).concat(middle, clip.subclip(n2))
+
+
+
+@clipMethod
+def compositePart(clip, fg, n1, n2, x1, y1):
+  middleBg = clip.subclip(n1, n2)
+  metadata = copy.copy(middleBg._metadata)
+  return CompositeVideoClip((middleBg, fg), metadata, x1, y1)
 
 
 
 class CompositeVideoClip(VideoClip):
-  """CompositeVideoClip(source, metadata, n1, n2, x1, y1)
+  """CompositeVideoClip(source, metadata, x1, y1)
 
   Represents a video clip that has had another clip overlaid in the foreground.
   """
 
 
 
-  def __init__(self, source, metadata, n1, n2, x1, y1):
-    super().__init__(source, metadata)
+  def __init__(self, source, metadata, x1, y1):
+    super().__init__(source, metadata, isConstant = source[0]._isConstant and source[1]._isConstant)
 
-    self._n1 = n1
-    self._n2 = n2
     self._x1 = x1
     self._y1 = y1
 
@@ -122,7 +141,7 @@ class CompositeVideoClip(VideoClip):
 
   @memoizeHash
   def __hash__(self):
-    return hash((super().__hash__(), (self._n1, self._n2, self._x1, self._y1)))
+    return hash((super().__hash__(), (self._x1, self._y1)))
 
 
 
@@ -132,7 +151,7 @@ class CompositeVideoClip(VideoClip):
       # The parent class parts must be the same
       if super().__eq__(other):
         # The crop regions must be the same
-        if (self._n1, self._n2, self._x1, self._y1) == (other._n1, other._n2, other._x1, other._y1):
+        if (self._x1, self._y1) == (other._x1, other._y1):
           return True
 
     return False
@@ -143,18 +162,12 @@ class CompositeVideoClip(VideoClip):
     clip = self._source[0]
     fg = self._source[1]
 
-    n1 = self._n1
-    n2 = self._n2
     x1 = self._x1
     y1 = self._y1
     x2 = x1 + fg.width
     y2 = y1 + fg.height
 
     image = clip.frame(n)
-
-    if n < n1 or n >= n2:
-      # The foreground clip is not being shown at frame n
-      return image
 
     if x2 < 0 or x1 > clip.width or y2 < 0 or y1 > clip.height:
       # The foreground clip is not currently visible
@@ -165,13 +178,14 @@ class CompositeVideoClip(VideoClip):
     fgx2 = min(fg.width, fg.width - (x2 - clip.width))
     fgy1 = max(0, -y1)
     fgy2 = min(fg.height, fg.height - (y2 - clip.height))
-    imageToBlit = fg.frame(n - n1)[fgy1:fgy2, fgx1:fgx2]
+    imageToBlit = fg.frame(n)[fgy1:fgy2, fgx1:fgx2]
 
     # Blit the foreground frame over the background frame
     x1 = max(0, x1)
     x2 = x1 + (fgx2 - fgx1)
     y1 = max(0, y1)
     y2 = y1 + (fgy2 - fgy1)
+    image = numpy.copy(image)
     image[y1:y2, x1:x2] = imageToBlit
 
     return image

@@ -66,7 +66,7 @@ class GaussianBlurredVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, size, sigma):
-    super().__init__(source, metadata)
+    super().__init__(source, metadata, isConstant = source[0]._isConstant)
 
     self._size = size
     self._sigma = sigma

@@ -154,3 +154,21 @@ def frameToTimecode(n, fps):
   s = s_ / fps
 
   return "{0:0>2.0f}:{1:0>2.0f}:{2:0>5.2f}".format(h, m, s)
+
+
+
+def interpretSubclipParameters(n1, n2, frameCount):
+  """interpretSubclipParameters(n1, n2, frameCount)
+
+  Converts (n1, n2) to be in the range [0, frameCount) and raises a ValueError if the parameters
+  are invalid.
+  """
+
+  if n1 < 0:
+    n1 += frameCount
+  if n2 < 0:
+    n2 += frameCount
+  if n1 > n2 or n1 < 0 or n1 >= frameCount or n2 < 1 or n2 > frameCount:
+    raise ValueError("invalid subclip parameters: n1 = {}, n2 = {}, frameCount = {}".format(n1, n2, frameCount))
+
+  return (n1, n2)
