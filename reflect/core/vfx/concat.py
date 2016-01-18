@@ -2,6 +2,7 @@
 
 from ..clips import VideoClip, clipMethod, memoizeHash
 import copy
+import collections
 
 
 
@@ -19,11 +20,19 @@ def concat(clip, *others, autoResize = True):
   Examples
   --------
   >>> clip.concat(clip2)          # `clip` immediately followed by `clip2`
+  >>> clip.concat(clip2, clip3)   # Equivalent to clip.concat(clip2).concat(clip3)
   >>> clip.concat([clip2, clip3]) # Equivalent to clip.concat(clip2).concat(clip3)
   """
 
   if not isinstance(clip, VideoClip):
     raise TypeError("expected a clip of type VideoClip")
+
+  if len(others) < 1:
+    raise TypeError("expected at least two clips to concatenate together")
+
+  if len(others) == 1 and isinstance(others, collections.Iterable):
+    # The call was something like clip1.concat([clip2, clip3]) instead of clip1.concat(clip2, clip3)
+    others = others[0]
 
   if autoResize:
     othersTuple = tuple([(other.resize(size = clip.size) if other.size != clip.size else other) for other in others])
