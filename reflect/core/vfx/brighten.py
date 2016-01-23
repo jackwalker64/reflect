@@ -13,11 +13,11 @@ def brighten(clip, amount):
 
   Examples
   --------
-  >>> clip.brighten(5)    # Add 5 to each of the rgb values, making the images brighter
-  >>> clip.brighten(0)    # No effect
-  >>> clip.brighten(-5)   # Subtract 5 from each of the rgb values, making the images darker
-  >>> clip.brighten(255)  # Guarantee that the resulting frames are entirely white
-  >>> clip.brighten(-255) # Guarantee that the resulting frames are entirely black
+  >>> clip.brighten(0.5)    # Brighten by 0.5, making the images brighter
+  >>> clip.brighten(0)      # No effect
+  >>> clip.brighten(-0.5)   # Darken by 0.5, making the images darker
+  >>> clip.brighten(1)      # Guarantee that the resulting frames are entirely white
+  >>> clip.brighten(-1)     # Guarantee that the resulting frames are entirely black
   """
 
   if not isinstance(clip, VideoClip):
