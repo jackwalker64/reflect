@@ -61,26 +61,36 @@ class Cache:
 
 
   def __str__(self):
+    stagedBins = []
     stagedClips = len(self._staged)
     stagedFrames = 0
     stagedBytes = 0
     for clip, entry in self._staged.items():
+      h = clip.__hash__()
+      if h not in stagedBins:
+        stagedBins.append(h)
       stagedFrames += len(entry)
       for n, image in entry.items():
         stagedBytes += image.nbytes
 
+    committedBins = []
     committedClips = len(self._committed)
     committedFrames = 0
     committedBytes = 0
     for clip, entry in self._committed.items():
+      h = clip.__hash__()
+      if h not in committedBins:
+        committedBins.append(h)
       committedFrames += len(entry)
       for n, image in entry.items():
         committedBytes += image.nbytes
 
-    return "<cache: ({} clips, {} frames, {} MiB) staged / ({} clips, {} frames, {} MiB) committed>".format(
+    return "<cache: ({} bins, {} clips, {} frames, {} MiB) staged / ({} bins, {} clips, {} frames, {} MiB) committed>".format(
+      len(stagedBins),
       stagedClips,
       stagedFrames,
       round(stagedBytes / 1024 / 1024, 1),
+      len(committedBins),
       committedClips,
       committedFrames,
       round(committedBytes / 1024 / 1024, 1)
@@ -316,7 +326,14 @@ class Cache:
         else:
           fillColour = "#ffffff"
         notCacheable = node.cacheEntry.isIndirection
-        pydotNode = pydotplus.Node("{}{}\np={}\nn={}".format(keyNode, i[0], round(self._committed[keyNode].priority, 1), "N/A ({})".format(len(self._committed[keyNode])) if notCacheable else len(self._committed[keyNode])), style = "filled", fillcolor = fillColour)
+        pydotNode = pydotplus.Node("{}{}\np={}\nn={}\niI={}\niC={}".format(
+          keyNode,
+          i[0],
+          round(self._committed[keyNode].priority, 1),
+          "N/A ({})".format(len(self._committed[keyNode])) if notCacheable else len(self._committed[keyNode]),
+          node.cacheEntry.isIndirection,
+          node._isConstant
+        ), style = "filled", fillcolor = fillColour)
         G.add_node(pydotNode)
         visited[node] = pydotNode
         if pydotSuccessor is not None:
@@ -331,7 +348,7 @@ class Cache:
     for node in self._committed:
       if node not in visited:
         i[0] += 1
-        G.add_node(pydotplus.Node("{}{}, {}".format(node, i[0], round(node.cacheEntry.priority, 1)), style = "filled", fillcolor = "#aaaaaa"))
+        G.add_node(pydotplus.Node("{}{}, p={}".format(node, i[0], round(node.cacheEntry.priority, 1)), style = "filled", fillcolor = "#aaaaaa"))
 
     G.write_png(filepath)
 
