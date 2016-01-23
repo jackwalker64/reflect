@@ -113,9 +113,9 @@ class Cache:
         return self._staged[clip][n]
 
     # Check the persistent store
-    if clip in self._committed:
-      if n in self._committed[clip]:
-        return self._committed[clip][n]
+    cacheEntry = clip.cacheEntry
+    if n in cacheEntry:
+      return cacheEntry[n]
 
     # The sought data is neither cached nor staged for caching.
     if "default" in explicitParams:
