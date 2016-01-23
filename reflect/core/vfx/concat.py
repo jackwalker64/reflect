@@ -76,7 +76,7 @@ class ConcatenatedVideoClip(VideoClip):
     if type(other) == type(self):
       # The parent class parts must be the same
       if super().__eq__(other):
-          return True
+        return True
 
     return False
 
