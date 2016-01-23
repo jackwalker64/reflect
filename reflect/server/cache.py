@@ -85,9 +85,9 @@ class Cache:
       for n, image in entry.items():
         committedBytes += image.nbytes
 
-    return "<cache: ({} bins, {} clips, {} frames, {} MiB) staged / ({} bins, {} clips, {} frames, {} MiB) committed>".format(
-      len(stagedBins),
-      stagedClips,
+    return "<Cache: ({} frames, {} MiB) staged / ({} bins, {} clips, {} frames, {} MiB) committed>".format(
+      # len(stagedBins),
+      # stagedClips,
       stagedFrames,
       round(stagedBytes / 1024 / 1024, 1),
       len(committedBins),
