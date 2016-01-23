@@ -81,7 +81,7 @@ class SlideTransitionVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, origin, frameCount, f):
-    super().__init__(source, metadata)
+    super().__init__(source, metadata, isIndirection = True)
 
     self._origin = origin
     self._frameCount = frameCount
