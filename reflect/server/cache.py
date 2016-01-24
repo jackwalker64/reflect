@@ -114,7 +114,7 @@ class Cache:
 
     # Check the persistent store
     cacheEntry = clip.cacheEntry
-    if n in cacheEntry:
+    if cacheEntry is not None and n in cacheEntry:
       return cacheEntry[n]
 
     # The sought data is neither cached nor staged for caching.
