@@ -218,6 +218,7 @@ class Window(object):
                 )
                 filepath = response
               if filepath:
+                logging.info("Saving frame...")
                 imageio.imwrite(filepath, self._leaves[self._currentTab].frame(self._currentFrame[self._currentTab]))
                 logging.info("Saved frame to {}".format(filepath))
 
