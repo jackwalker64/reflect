@@ -50,7 +50,7 @@ class TextImageClip(ImageClip):
 
 
   def __init__(self, pygameFont, fontPath, fontSize, text, antialias, color, background):
-    super().__init__(None, pygameFont.fontSize(text))
+    super().__init__(None, pygameFont.size(text))
 
     self._pygameFont = pygameFont
     self._fontPath = fontPath
