@@ -26,8 +26,8 @@ def resize(clip, size = None, width = None, height = None):
 
   # Process the arguments
   (oldWidth, oldHeight) = clip.size
-  if size != None:
-    if width != None or height != None:
+  if size is not None:
+    if width is not None or height is not None:
       raise TypeError("either specify size, or specify at least one of width and height")
     elif isinstance(size, int) or isinstance(size, float):
       (width, height) = (round(oldWidth * size), round(oldHeight * size))
@@ -36,11 +36,11 @@ def resize(clip, size = None, width = None, height = None):
     else:
       raise TypeError("size must be either an int, a float, or a (width, height) pair")
   else:
-    if width != None and height != None:
+    if width is not None and height is not None:
       pass
-    elif width != None and height == None:
+    elif width is not None and height is None:
       height = round(width / oldWidth * oldHeight)
-    elif width == None and height != None:
+    elif width is None and height is not None:
       width = round(height / oldHeight * oldWidth)
     else:
       raise TypeError("resize requires either size, width, or height to be provided")
@@ -50,7 +50,7 @@ def resize(clip, size = None, width = None, height = None):
 
   # Metadata: Update the dimensions
   metadata = copy.copy(clip._metadata)
-  metadata.size = (width, height)
+  metadata.size = (round(width), round(height))
 
   return ResizedVideoClip(source, metadata)
 
