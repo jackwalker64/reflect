@@ -79,9 +79,9 @@ class BrightenedVideoClip(VideoClip):
 
     if amount >= 0:
       # Brighten
-      image = image * (1 - amount) + (amount * 255)
+      image = (image * (1 - amount) + (amount * 255)).astype("uint8")
     else:
       # Darken
-      image = image * (1 + amount)
+      image = (image * (1 + amount)).astype("uint8")
 
     return image
