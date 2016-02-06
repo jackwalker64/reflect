@@ -159,7 +159,7 @@ class Cache:
           self._priorityQueue.findNewVictim()
       if self._currentSize + data.nbytes <= self.maxSize:
         # Add the data to the cache and ensure the priority queue knows the correct next victim
-        self._committed[clip][n] = data
+        clip.cacheEntry[n] = data
         self._currentSize += data.nbytes
         currentVictim = self._priorityQueue.peek()
         if currentVictim is None or currentVictim.priority >= clip.cacheEntry.priority:
