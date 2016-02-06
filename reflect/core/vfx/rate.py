@@ -61,14 +61,19 @@ class ChangedRateVideoClip(VideoClip):
 
 
 
-  def __eq__(self, other):
+  def _pseudoeq(self, other):
     # self and other must both be of this class
     if type(other) == type(self):
       # The parent class parts must be the same
-      if super().__eq__(other):
+      if super()._pseudoeq(other):
         return True
 
     return False
+
+
+
+  def __eq__(self, other):
+    return self._pseudoeq(other) and self._source == other._source
 
 
 

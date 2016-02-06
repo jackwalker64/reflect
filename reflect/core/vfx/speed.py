@@ -73,16 +73,21 @@ class SpedVideoClip(VideoClip):
 
 
 
-  def __eq__(self, other):
+  def _pseudoeq(self, other):
     # self and other must both be of this class
     if type(other) == type(self):
       # The parent class parts must be the same
-      if super().__eq__(other):
+      if super()._pseudoeq(other):
         # The scale factors must be the same
         if self._scale == other._scale:
           return True
 
     return False
+
+
+
+  def __eq__(self, other):
+    return self._pseudoeq(other) and self._source == other._source
 
 
 

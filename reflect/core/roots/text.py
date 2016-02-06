@@ -68,16 +68,21 @@ class TextImageClip(ImageClip):
 
 
 
-  def __eq__(self, other):
+  def _pseudoeq(self, other):
     # self and other must both be of this class
     if type(other) == type(self):
       # The parent class parts must be the same
-      if super().__eq__(other):
+      if super()._pseudoeq(other):
         # The parameters (except for the pygame font object) must be the same
         if (self._fontPath, self._fontSize, self._text, self._antialias, self._color, self._background) == (other._fontPath, other._fontSize, other._text, other._antialias, other._color, other._background):
           return True
 
     return False
+
+
+
+  def __eq__(self, other):
+    return self._pseudoeq(other) and self._source == other._source
 
 
 

@@ -145,8 +145,13 @@ class VideoClip(Clip):
 
 
 
+  def _pseudoeq(self, other):
+    return type(self) == type(other) and self._metadata == other._metadata
+
+
+
   def __eq__(self, other):
-    return type(self) == type(other) and self._source == other._source and self._metadata == other._metadata
+    return self._pseudoeq(other) and self._source == other._source
 
 
 
@@ -386,8 +391,13 @@ class ImageClip(VideoClip):
 
 
 
+  def _pseudoeq(self, other):
+    return type(self) == type(other) and self._metadata == other._metadata
+
+
+
   def __eq__(self, other):
-    return type(self) == type(other) and self._source == other._source and self._metadata == other._metadata
+    return self._pseudoeq(other) and self._source == other._source
 
 
 

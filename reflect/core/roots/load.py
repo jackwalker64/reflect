@@ -76,7 +76,7 @@ class LoadedVideoClip(VideoClip):
 
 
 
-  def __eq__(self, other):
+  def _pseudoeq(self, other):
     # self and other must both be of this class
     if type(other) == type(self):
       # The readers must be reading the same file
@@ -84,6 +84,11 @@ class LoadedVideoClip(VideoClip):
         return True
 
     return False
+
+
+
+  def __eq__(self, other):
+    return self._pseudoeq(other) and self._source == other._source
 
 
 

@@ -209,6 +209,9 @@ class Cache:
     * Each clip in `graph` has a `cacheEntry` property pointing to its entry in the cache.
     """
 
+    import time
+    t1 = time.time()
+
     # Ensure that the precondition is met
     for leaf in graph.leaves:
       if leaf.cacheEntry is not None:
@@ -221,16 +224,18 @@ class Cache:
       cacheEntry.age += 1
 
     # Post-order graph traversal starting from the leaves
+    N = [0]
     def traverse(node):
       if node.cacheEntry is not None:
         # This node has already been visited
         return node.cacheEntry
       else:
+        N[0] += 1
         if isinstance(node._source, str) or node._source is None:
           # This node is a root
           cacheEntry = self._committed.get(node, None)
           if cacheEntry is None:
-            cacheEntry = CacheEntry(isRoot = True, isHotnode = True, precedesHotnode = False, rootDistance = 0, isIndirection = node.isIndirection)
+            cacheEntry = CacheEntry(node = node, isRoot = True, isHotnode = True, precedesHotnode = False, rootDistance = 0, isIndirection = node.isIndirection)
             self._committed[node] = cacheEntry
           else:
             cacheEntry.isRoot = True
@@ -240,12 +245,34 @@ class Cache:
             cacheEntry.isIndirection = node.isIndirection
             cacheEntry.age = 0
         elif isinstance(node._source, tuple):
-          cacheEntry = self._committed.get(node, None)
-
           # First visit this node's sources
-          maxRootDistance = None
+          sourceCacheEntries = []
           for source in node._source:
             sourceCacheEntry = traverse(source)
+            sourceCacheEntries.append(sourceCacheEntry)
+
+          # To retrieve the current node's cacheEntry (if it exists), we could just call:
+          # cacheEntry = self._committed.get(node, None)
+          # However, this will involve O(d²) calls to Clip.__eq__ if the graph has depth d.
+          # A more efficient method is to make use of the source nodes' cacheEntries, which will
+          #   all point to the current node's cacheEntry if it exists.
+          def intersect(ds):
+            if len(ds) == 0:
+              return []
+            else:
+              return [v for k, v in ds[0].items() if all(k in d for d in ds[1:])]
+          candidateCacheEntries = intersect([e.successors[node.__hash__()] for e in sourceCacheEntries if node.__hash__() in e.successors])
+          chosenCacheEntries = [e for e in candidateCacheEntries if node._pseudoeq(e.node)]
+          if len(chosenCacheEntries) == 0:
+            cacheEntry = None
+          elif len(chosenCacheEntries) == 1:
+            cacheEntry = chosenCacheEntries[0]
+          else:
+            raise Exception("Duplicate cache entries found for {}".format(node))
+
+          # Update the predecessors if this node is hot, and determine the maximum distance from a root to this node
+          maxRootDistance = None
+          for sourceCacheEntry in sourceCacheEntries:
             if cacheEntry is None or cacheEntry.age > 1:
               # This node is hot, so we need to update the entry of the predecessor
               sourceCacheEntry.precedesHotnode = True
@@ -253,7 +280,7 @@ class Cache:
               maxRootDistance = sourceCacheEntry.rootDistance
 
           if cacheEntry is None:
-            cacheEntry = CacheEntry(isRoot = False, isHotnode = True, precedesHotnode = False, rootDistance = maxRootDistance + 1, isIndirection = node.isIndirection)
+            cacheEntry = CacheEntry(node = node, isRoot = False, isHotnode = True, precedesHotnode = False, rootDistance = maxRootDistance + 1, isIndirection = node.isIndirection)
             self._committed[node] = cacheEntry
           else:
             cacheEntry.isRoot = False
@@ -262,6 +289,13 @@ class Cache:
             cacheEntry.rootDistance = maxRootDistance + 1
             cacheEntry.isIndirection = node.isIndirection
             cacheEntry.age = 0
+
+          # Make sure the source cacheEntries (predecessors) know that this cacheEntry is one of their successors.
+          for sourceCacheEntry in sourceCacheEntries:
+            if node.__hash__() not in sourceCacheEntry.successors:
+              sourceCacheEntry.successors[node.__hash__()] = {}
+            if id(cacheEntry) not in sourceCacheEntry.successors[node.__hash__()]:
+              sourceCacheEntry.successors[node.__hash__()][id(cacheEntry)] = cacheEntry
 
           if cacheEntry.isIndirection:
             # DFS to find all nodes that this node is an indirection of, i.e. the nodes containing
@@ -288,12 +322,22 @@ class Cache:
     clipsToPurge = []
     for clip, cacheEntry in self._committed.items():
       if cacheEntry.age > maximumAge and len(cacheEntry) == 0 and cacheEntry.priority < minimumPriority:
-        clipsToPurge.append(clip)
-    for clip in clipsToPurge:
+        clipsToPurge.append((clip, cacheEntry))
+    for clip, cacheEntry in clipsToPurge:
+      # Remove any references to this cacheEntry from cacheEntries of this node's sources
+      if isinstance(clip._source, tuple):
+        for source in clip._source:
+          if id(cacheEntry) in source.cacheEntry.successors[clip.__hash__()]:
+            del source.cacheEntry.successors[clip.__hash__()][id(cacheEntry)]
+
+      # Remove the (clip, cacheEntry) item from the master dict
       del self._committed[clip]
 
     # Replace the priority queue
     self._priorityQueue = PriorityQueue(self._committed)
+
+    t2 = time.time()
+    logging.info("Reprioritised {} nodes in {} s".format(N[0], t2 - t1))
 
     # Debug
     if visualise:
@@ -368,16 +412,18 @@ class CacheEntry(dict):
 
 
 
-  def __init__(self, isRoot, isHotnode, precedesHotnode, rootDistance, isIndirection):
+  def __init__(self, node, isRoot, isHotnode, precedesHotnode, rootDistance, isIndirection):
     super().__init__()
 
     self.age = 0
+    self.node = node
     self.isRoot = isRoot
     self.isHotnode = isHotnode
     self.precedesHotnode = precedesHotnode
     self.rootDistance = rootDistance
     self.isIndirection = isIndirection
     self.associatedIndirections = []
+    self.successors = {}
 
 
 

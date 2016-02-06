@@ -145,16 +145,21 @@ class CompositeVideoClip(VideoClip):
 
 
 
-  def __eq__(self, other):
+  def _pseudoeq(self, other):
     # self and other must both be of this class
     if type(other) == type(self):
       # The parent class parts must be the same
-      if super().__eq__(other):
+      if super()._pseudoeq(other):
         # The crop regions must be the same
         if (self._x1, self._y1) == (other._x1, other._y1):
           return True
 
     return False
+
+
+
+  def __eq__(self, other):
+    return self._pseudoeq(other) and self._source == other._source
 
 
 

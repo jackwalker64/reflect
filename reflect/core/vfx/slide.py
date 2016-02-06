@@ -96,17 +96,22 @@ class SlideTransitionVideoClip(VideoClip):
 
 
 
-  def __eq__(self, other):
+  def _pseudoeq(self, other):
     # self and other must both be of this class
     if type(other) == type(self):
       # The parent class parts must be the same
-      if super().__eq__(other):
+      if super()._pseudoeq(other):
         # The slide parameters must be the same
         import inspect
         if self._origin == other._origin and self._frameCount == other._frameCount and inspect.getsource(self._f) == inspect.getsource(other._f):
           return True
 
     return False
+
+
+
+  def __eq__(self, other):
+    return self._pseudoeq(other) and self._source == other._source
 
 
 
