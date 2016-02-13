@@ -177,7 +177,7 @@ class ScriptRunner(threading.Thread):
     for leaf in leavesToResize:
       size = self._previewWindow.sizeToFitDisplayPanel(leaf)
       if size != leaf.size:
-        leaf.resize(size)
+        leaf.resize(size)._timestamp = leaf._timestamp
 
     # Update priorities according to the new composition graph
     cache.reprioritise(reflect.CompositionGraph.current())

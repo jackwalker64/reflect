@@ -66,20 +66,22 @@ class Window(object):
 
     self._busy = None
 
-    self._leaves = [] # List of leaf clips which can be previewed
+    self._leaves = [] # List of leaf dicts, each one containing a reference to the leaf clip as well as state like current frame and tab icon
     self._currentTab = None # Index of the currently visible leaf clip
-    self._currentFrame = None
 
     self._playing = False
-    self._currentFrame = 0
 
     self._heldKeys = {} # keycode → int. Keeps track of how many frames each key has been held for.
     self._heldMouseButtons = {} # buttoncode → dict. Keeps track of how many frames each mouse button has been held for, and the position of the click.
+    self._mouseIsOverTabstrip = False
 
 
 
   def run(self):
     # Preview window event loop
+
+    (mouseX, mouseY) = pygame.mouse.get_pos()
+    self._mouseIsOverTabstrip = self._tabstripPanel.collidepoint(mouseX, mouseY)
 
     while self._running:
       # Handle any incoming method calls
@@ -106,6 +108,17 @@ class Window(object):
           self._running = False
           break
 
+      # Check the position of the mouse
+      (mouseX, mouseY) = pygame.mouse.get_pos()
+      if self._mouseIsOverTabstrip:
+        if not self._tabstripPanel.collidepoint(mouseX, mouseY):
+          self._mouseIsOverTabstrip = False
+          self._redrawTabstrip(forceOpaque = False)
+      else:
+        if self._tabstripPanel.collidepoint(mouseX, mouseY):
+          self._mouseIsOverTabstrip = True
+          self._redrawTabstrip(forceOpaque = True)
+
       if not self._leaves:
         # Check for a left click in the display area, which will trigger a script run
         for button, state in self._heldMouseButtons.items():
@@ -122,11 +135,14 @@ class Window(object):
           x, y = pygame.mouse.get_pos()
           if button == 1:
             # Left click
-            if self._timelinePanel.collidepoint(initialX, initialY):
+            if self._tabstripPanel.collidepoint(initialX, initialY):
+              if duration == 0:
+                self._clickTab(initialX, initialY)
+            elif self._timelinePanel.collidepoint(initialX, initialY):
               # Seek to position
-              targetFrame = math.floor(x / self._timelinePanel.width * self._leaves[self._currentTab].frameCount)
-              if targetFrame >= self._leaves[self._currentTab].frameCount:
-                targetFrame = self._leaves[self._currentTab].frameCount - 1
+              targetFrame = math.floor(x / self._timelinePanel.width * self._leaves[self._currentTab]["clip"].frameCount)
+              if targetFrame >= self._leaves[self._currentTab]["clip"].frameCount:
+                targetFrame = self._leaves[self._currentTab]["clip"].frameCount - 1
               elif targetFrame < 0:
                 targetFrame = 0
               self._seek(n = targetFrame)
@@ -150,7 +166,7 @@ class Window(object):
                 import win32clipboard
                 import tempfile
                 with tempfile.NamedTemporaryFile(suffix = ".bmp", delete = False) as t:
-                  image = self._leaves[self._currentTab].frame(self._currentFrame[self._currentTab])
+                  image = self._leaves[self._currentTab]["clip"].frame(self._leaves[self._currentTab]["currentFrame"])
                   imageio.imwrite(t.name, image)
                   data = t.read()[14:]
                 os.remove(t.name)
@@ -202,8 +218,8 @@ class Window(object):
               # Save a snapshot
               filepath = "{0}_{1:0>{width}}.png".format(
                 os.path.splitext(self._filepath)[0],
-                self._currentFrame[self._currentTab],
-                width = math.floor(math.log10(self._leaves[self._currentTab].frameCount)) + 1
+                self._leaves[self._currentTab]["currentFrame"],
+                width = math.floor(math.log10(self._leaves[self._currentTab]["clip"].frameCount)) + 1
               )
               if pygame.K_LCTRL in self._heldKeys or pygame.K_RCTRL in self._heldKeys:
                 # If CTRL is held, then let the user choose where to save the snapshot
@@ -219,7 +235,7 @@ class Window(object):
                 filepath = response
               if filepath:
                 logging.info("Saving frame...")
-                imageio.imwrite(filepath, self._leaves[self._currentTab].frame(self._currentFrame[self._currentTab]))
+                imageio.imwrite(filepath, self._leaves[self._currentTab]["clip"].frame(self._leaves[self._currentTab]["currentFrame"]))
                 logging.info("Saved frame to {}".format(filepath))
 
         # If the video is currently playing, update the display
@@ -291,15 +307,45 @@ class Window(object):
     self._callQueue.put((self._startSession, args, kwargs))
 
   def _startSession(self, leaves, failed = False):
+    def makeIcon(leaf):
+      # Render the clip's frame and resize it to be used as an icon in the tabstrip
+      image = leaf.frame(0)
+      newHeight = self._tabstripPanel.height - 4
+      newWidth = int(leaf.width * newHeight / leaf.height)
+      resizedImage = cv2.resize(image, (newWidth, newHeight), interpolation = cv2.INTER_AREA)
+      surface = pygame.surfarray.make_surface(resizedImage.swapaxes(0, 1))
+      return surface
+
+    def initialLeafPosition(oldLeaves, oldCurrentTab, leaf, i):
+      if i < len(oldLeaves):
+        oldFrame = oldLeaves[i]["currentFrame"]
+        if oldFrame < leaf.frameCount:
+          return oldFrame
+        else:
+          # The leaf has changed too much to allow us to retain the old video position, so just reset it to 0
+          return 0
+      else:
+        return 0
+
     # Set up the leaves/tabs
-    self._leaves = list(leaves)
-    self._currentTab = 0
-    self._currentFrame = [0] * len(self._leaves) # For each leaf, start at the first frame
+    self._leaves = [{
+      "clip": leaf,
+      "currentFrame": initialLeafPosition(self._leaves, self._currentTab, leaf, i),
+      "icon": makeIcon(leaf)
+    } for i, leaf in enumerate(sorted(leaves, key = lambda leaf: leaf.timestamp))]
+
+    if self._currentTab is None or self._currentTab >= len(self._leaves):
+      # The old tab index is longer valid/possible, so just reset it to show the first tab
+      self._currentTab = 0
+
     if failed:
       # The user's script produced an error
       self._showText("The script produced an error, see the console for details.")
     elif self._leaves:
-      # Blit the first frame of the first leaf
+      # Set up and blit the first frame of the first leaf
+      (mouseX, mouseY) = pygame.mouse.get_pos()
+      self._mouseIsOverTabstrip = self._tabstripPanel.collidepoint(mouseX, mouseY)
+      self._redrawTabstrip(forceOpaque = self._mouseIsOverTabstrip)
       self._redrawDisplay()
       self._redrawPlayButton()
     else:
@@ -322,7 +368,7 @@ class Window(object):
     if not self._leaves:
       return 30
     else:
-      return self._leaves[self._currentTab].fps
+      return self._leaves[self._currentTab]["clip"].fps
 
 
 
@@ -330,22 +376,22 @@ class Window(object):
     if n is not None:
       if relative is not None:
         raise Exception("Expected exactly one of `n` or `relative`, but received both")
-      self._currentFrame[self._currentTab] = n
+      self._leaves[self._currentTab]["currentFrame"] = n
     elif relative is not None:
-      self._currentFrame[self._currentTab] += math.ceil(relative)
-      frameCount = self._leaves[self._currentTab].frameCount
+      self._leaves[self._currentTab]["currentFrame"] += math.ceil(relative)
+      frameCount = self._leaves[self._currentTab]["clip"].frameCount
       if loop:
         if frameCount == 0:
           raise Exception("Empty clip")
-        while self._currentFrame[self._currentTab] >= frameCount:
-          self._currentFrame[self._currentTab] -= frameCount
-        while self._currentFrame[self._currentTab] < 0:
-          self._currentFrame[self._currentTab] += frameCount
+        while self._leaves[self._currentTab]["currentFrame"] >= frameCount:
+          self._leaves[self._currentTab]["currentFrame"] -= frameCount
+        while self._leaves[self._currentTab]["currentFrame"] < 0:
+          self._leaves[self._currentTab]["currentFrame"] += frameCount
       else:
-        if self._currentFrame[self._currentTab] >= frameCount:
-          self._currentFrame[self._currentTab] = frameCount - 1
-        elif self._currentFrame[self._currentTab] < 0:
-          self._currentFrame[self._currentTab] = 0
+        if self._leaves[self._currentTab]["currentFrame"] >= frameCount:
+          self._leaves[self._currentTab]["currentFrame"] = frameCount - 1
+        elif self._leaves[self._currentTab]["currentFrame"] < 0:
+          self._leaves[self._currentTab]["currentFrame"] = 0
     else:
       raise Exception("Expected exactly one of `n` or `relative`, but received neither")
 
@@ -376,10 +422,39 @@ class Window(object):
 
 
 
+  def _clickTab(self, mouseX, mouseY):
+    # Figure out which tab the user just clicked on
+    (x, y) = (self._tabstripPanel.left, self._tabstripPanel.top)
+    for i, leaf in enumerate(self._leaves):
+      surface = leaf["icon"]
+      iconRect = pygame.Rect(x + 2, y + 2, surface.get_width(), surface.get_height())
+      if iconRect.collidepoint(mouseX, mouseY):
+        self._currentTab = i
+        self._redrawDisplay()
+        self._redrawPlayButton()
+        return
+      x += surface.get_width() + 2
+
+
+
+  def _redrawTabstrip(self, forceOpaque = False):
+    self._screen.fill((39, 40, 34), rect = self._tabstripPanel)
+
+    (x, y) = (self._tabstripPanel.left, self._tabstripPanel.top)
+    for i, leaf in enumerate(self._leaves):
+      surface = leaf["icon"]
+      surface.set_alpha(255 if forceOpaque or i == self._currentTab else 120)
+      self._screen.blit(surface, (x + 2, y + 2))
+      x += surface.get_width() + 2
+
+    pygame.display.update(self._tabstripPanel)
+
+
+
   # Triggered when the current frame changes.
   def _redrawDisplay(self):
-    leaf = self._leaves[self._currentTab]
-    n = self._currentFrame[self._currentTab]
+    leaf = self._leaves[self._currentTab]["clip"]
+    n = self._leaves[self._currentTab]["currentFrame"]
 
     image = leaf.frame(n)
 
@@ -453,7 +528,7 @@ class Window(object):
     progressRect = pygame.Rect(
       self._controlbarProgressTimecodeRect.left,
       self._controlbarPanel.top,
-      self._controlbarProgressTimecodeRect.width + self._controlbarProgressFrameRect.width,
+      self._controlbarPanel.width - self._controlbarProgressTimecodeRect.left,
       25
     )
 

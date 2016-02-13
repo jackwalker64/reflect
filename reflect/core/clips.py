@@ -5,8 +5,11 @@ import fractions
 import imageio
 import os
 import inspect
+import time
 
 mode = "normal"
+
+clipConstructionCounter = [0] # Used for ordering clips by the time at which they were constructed
 
 
 
@@ -28,6 +31,10 @@ class Clip(object):
     # If every frame of this clip is the same then we can avoid re-rendering/re-caching them.
     self._isConstant = isConstant
 
+    # Record the time at which this clip was constructed
+    self._timestamp = clipConstructionCounter[0]
+    clipConstructionCounter[0] += 1
+
 
 
   def __str__(self):
@@ -42,6 +49,10 @@ class Clip(object):
   @property
   def isIndirection(self):
     return self._isIndirection
+
+  @property
+  def timestamp(self):
+    return self._timestamp
 
 
 
@@ -135,7 +146,6 @@ class VideoClip(Clip):
     # self.mask = mask
 
     self._constantImage = None # Used as a local cache when not in server mode
-
 
 
 
