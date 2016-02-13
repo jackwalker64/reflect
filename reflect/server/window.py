@@ -73,15 +73,11 @@ class Window(object):
 
     self._heldKeys = {} # keycode → int. Keeps track of how many frames each key has been held for.
     self._heldMouseButtons = {} # buttoncode → dict. Keeps track of how many frames each mouse button has been held for, and the position of the click.
-    self._mouseIsOverTabstrip = False
 
 
 
   def run(self):
     # Preview window event loop
-
-    (mouseX, mouseY) = pygame.mouse.get_pos()
-    self._mouseIsOverTabstrip = self._tabstripPanel.collidepoint(mouseX, mouseY)
 
     while self._running:
       # Handle any incoming method calls
@@ -91,33 +87,35 @@ class Window(object):
         self._callQueue.task_done()
 
       # Process gui input
+      scrollWheel = 0
       for event in pygame.event.get():
         if event.type == pygame.MOUSEBUTTONDOWN:
-          self._heldMouseButtons[event.button] = {
-            "initialPosition": pygame.mouse.get_pos(),
-            "duration": 0
-          }
+          if event.button == 4:
+            scrollWheel += 1
+          elif event.button == 5:
+            scrollWheel -= 1
+          else:
+            self._heldMouseButtons[event.button] = {
+              "initialPosition": pygame.mouse.get_pos(),
+              "duration": 0
+            }
         elif event.type == pygame.MOUSEBUTTONUP:
-          del self._heldMouseButtons[event.button] # Button is no longer being held
+          if event.button in self._heldMouseButtons:
+            del self._heldMouseButtons[event.button] # Button is no longer being held
         elif event.type == pygame.KEYDOWN:
           self._heldKeys[event.key] = 0 # Key has been held for 0 frames
         elif event.type == pygame.KEYUP:
-          del self._heldKeys[event.key] # Key is no longer being held
+          if event.key in self._heldKeys:
+            del self._heldKeys[event.key] # Key is no longer being held
+        elif event.type == pygame.MOUSEMOTION:
+          # Check the position of the mouse
+          (mouseX, mouseY) = pygame.mouse.get_pos()
+          if self._tabstripPanel.collidepoint(mouseX, mouseY):
+            self._redrawTabstrip()
         elif event.type == pygame.QUIT:
           logging.info("Stopping")
           self._running = False
           break
-
-      # Check the position of the mouse
-      (mouseX, mouseY) = pygame.mouse.get_pos()
-      if self._mouseIsOverTabstrip:
-        if not self._tabstripPanel.collidepoint(mouseX, mouseY):
-          self._mouseIsOverTabstrip = False
-          self._redrawTabstrip(forceOpaque = False)
-      else:
-        if self._tabstripPanel.collidepoint(mouseX, mouseY):
-          self._mouseIsOverTabstrip = True
-          self._redrawTabstrip(forceOpaque = True)
 
       if not self._leaves:
         # Check for a left click in the display area, which will trigger a script run
@@ -137,7 +135,7 @@ class Window(object):
             # Left click
             if self._tabstripPanel.collidepoint(initialX, initialY):
               if duration == 0:
-                self._clickTab(initialX, initialY)
+                self._clickTab(mousePosition = (initialX, initialY))
             elif self._timelinePanel.collidepoint(initialX, initialY):
               # Seek to position
               targetFrame = math.floor(x / self._timelinePanel.width * self._leaves[self._currentTab]["clip"].frameCount)
@@ -175,6 +173,18 @@ class Window(object):
                 win32clipboard.SetClipboardData(win32clipboard.CF_DIB, data)
                 win32clipboard.CloseClipboard()
                 logging.info("Copied frame to the clipboard")
+
+        # Handle the scroll wheel
+        if scrollWheel > 0:
+          # Wheel scroll up
+          x, y = pygame.mouse.get_pos()
+          if self._tabstripPanel.collidepoint(x, y):
+            self._clickTab(tabIndex = self._currentTab + 1 if self._currentTab + 1 < len(self._leaves) else 0)
+        elif scrollWheel < 0:
+          # Wheel scroll down
+          x, y = pygame.mouse.get_pos()
+          if self._tabstripPanel.collidepoint(x, y):
+            self._clickTab(tabIndex = self._currentTab - 1 if self._currentTab - 1 >= 0 else len(self._leaves) - 1)
 
         # Handle keys that were pressed/held
         for key, duration in self._heldKeys.items():
@@ -237,6 +247,15 @@ class Window(object):
                 logging.info("Saving frame...")
                 imageio.imwrite(filepath, self._leaves[self._currentTab]["clip"].frame(self._leaves[self._currentTab]["currentFrame"]))
                 logging.info("Saved frame to {}".format(filepath))
+          elif key == pygame.K_TAB:
+            if duration == 0 or duration > self._fps / 2:
+              if pygame.K_LCTRL in self._heldKeys or pygame.K_RCTRL in self._heldKeys:
+                if pygame.K_LSHIFT in self._heldKeys or pygame.K_RSHIFT in self._heldKeys:
+                  # Switch to the previous tab
+                  self._clickTab(tabIndex = self._currentTab - 1 if self._currentTab - 1 >= 0 else len(self._leaves) - 1)
+                else:
+                  # Switch to the next tab
+                  self._clickTab(tabIndex = self._currentTab + 1 if self._currentTab + 1 < len(self._leaves) else 0)
 
         # If the video is currently playing, update the display
         if self._playing:
@@ -344,8 +363,7 @@ class Window(object):
     elif self._leaves:
       # Set up and blit the first frame of the first leaf
       (mouseX, mouseY) = pygame.mouse.get_pos()
-      self._mouseIsOverTabstrip = self._tabstripPanel.collidepoint(mouseX, mouseY)
-      self._redrawTabstrip(forceOpaque = self._mouseIsOverTabstrip)
+      self._redrawTabstrip()
       self._redrawDisplay()
       self._redrawPlayButton()
     else:
@@ -422,7 +440,18 @@ class Window(object):
 
 
 
-  def _clickTab(self, mouseX, mouseY):
+  def _clickTab(self, mousePosition = None, tabIndex = None):
+    if tabIndex is not None:
+      self._currentTab = tabIndex
+      self._redrawTabstrip()
+      self._redrawDisplay()
+      self._redrawPlayButton()
+      return
+
+    if mousePosition is None:
+      raise TypeError("expected either tabIndex or mousePosition to be provided")
+    (mouseX, mouseY) = mousePosition
+
     # Figure out which tab the user just clicked on
     (x, y) = (self._tabstripPanel.left, self._tabstripPanel.top)
     for i, leaf in enumerate(self._leaves):
@@ -430,6 +459,7 @@ class Window(object):
       iconRect = pygame.Rect(x + 2, y + 2, surface.get_width(), surface.get_height())
       if iconRect.collidepoint(mouseX, mouseY):
         self._currentTab = i
+        self._redrawTabstrip()
         self._redrawDisplay()
         self._redrawPlayButton()
         return
@@ -437,13 +467,15 @@ class Window(object):
 
 
 
-  def _redrawTabstrip(self, forceOpaque = False):
+  def _redrawTabstrip(self):
     self._screen.fill((39, 40, 34), rect = self._tabstripPanel)
 
     (x, y) = (self._tabstripPanel.left, self._tabstripPanel.top)
+    (mouseX, mouseY) = pygame.mouse.get_pos()
     for i, leaf in enumerate(self._leaves):
       surface = leaf["icon"]
-      surface.set_alpha(255 if forceOpaque or i == self._currentTab else 120)
+      iconRect = pygame.Rect(x + 2, y + 2, surface.get_width(), surface.get_height())
+      surface.set_alpha(255 if i == self._currentTab or iconRect.collidepoint(mouseX, mouseY) else 120)
       self._screen.blit(surface, (x + 2, y + 2))
       x += surface.get_width() + 2
 
