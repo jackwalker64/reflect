@@ -14,6 +14,7 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("-d", "--debug", action = "store_true", help = "Enable debug mode.")
   parser.add_argument("-v", "--visualise", action = "store_true", help = "Write the priority graph to D:/Desktop/priorities.png every time it is updated.")
+  parser.add_argument("-V", "--visualiseFilepath", required = False, default = None, help = "Write the priority graph to the specified path every time it is updated.")
   parser.add_argument("-f", "--filepath", required = False, default = None, help = "The path to the python script to watch.")
   parser.add_argument("-m", "--cacheSize", required = False, default = 100, help = "The maximum size, in MiB, of the cache. Default is 100 MiB.")
   args = parser.parse_args()
@@ -28,8 +29,10 @@ def main():
   else:
     filepath = args.filepath
 
-  if args.visualise:
-    reflect.setVisualise(True)
+  if args.visualiseFilepath is not None:
+    reflect.setVisualiseFilepath(args.visualiseFilepath)
+  elif args.visualise:
+    reflect.setVisualiseFilepath("D:/Desktop/priorities.png")
 
   reflect.server.start(filepath, defaultFilepath, int(args.cacheSize) * 1024 * 1024)
 

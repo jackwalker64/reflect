@@ -2,7 +2,7 @@
 
 import logging
 
-visualise = False
+visualiseFilepath = None
 
 
 
@@ -378,8 +378,10 @@ class Cache:
     logging.info("Reprioritised {} nodes in {} s".format(N[0], t2 - t1))
 
     # Debug
-    if visualise:
-      self.visualisePriorities(graph, "D:\\Desktop\\priorities.png")
+    if visualiseFilepath is not None:
+      logging.info("Writing graph visualisation to {}".format(visualiseFilepath))
+      self.visualisePriorities(graph, visualiseFilepath)
+      logging.info("Wrote graph visualisation to {}".format(visualiseFilepath))
 
 
 
