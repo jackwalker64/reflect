@@ -172,6 +172,13 @@ class ScriptRunner(threading.Thread):
       cache.emptyStagingArea()
       return
 
+    # Resize the output clips to match the size of the preview window
+    leavesToResize = set(reflect.CompositionGraph.current().leaves)
+    for leaf in leavesToResize:
+      size = self._previewWindow.sizeToFitDisplayPanel(leaf)
+      if size != leaf.size:
+        leaf.resize(size)
+
     # Update priorities according to the new composition graph
     cache.reprioritise(reflect.CompositionGraph.current())
 

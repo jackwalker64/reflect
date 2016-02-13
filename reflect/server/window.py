@@ -353,6 +353,29 @@ class Window(object):
 
 
 
+  # If the leaf clip doesn't fit within the preview window,
+  # then work out the size it should be resized to.
+  def sizeToFitDisplayPanel(self, leaf):
+    if self._displayPanel.width >= leaf.width and self._displayPanel.height >= leaf.height:
+      # The frame is smaller than the display panel, so no resizing is necessary
+      return (leaf.width, leaf.height)
+    elif self._displayPanel.width / self._displayPanel.height >= leaf.width / leaf.height:
+      # The display panel is wider than the frame to be blitted, so pillarbox the frame
+      if leaf.height > self._displayPanel.height:
+        # Downscale the frame to match the display panel's height
+        return (leaf.width / leaf.height * self._displayPanel.height, self._displayPanel.height)
+      else:
+        return (leaf.width, leaf.height)
+    else:
+      # The display panel is taller than the frame to be blitted, so letterbox the frame
+      if leaf.width > self._displayPanel.width:
+        # Downscale the frame to match the display panel's width
+        return (self._displayPanel.width, leaf.height / leaf.width * self._displayPanel.width)
+      else:
+        return (leaf.width, leaf.height)
+
+
+
   # Triggered when the current frame changes.
   def _redrawDisplay(self):
     leaf = self._leaves[self._currentTab]
@@ -360,39 +383,16 @@ class Window(object):
 
     image = leaf.frame(n)
 
-    if self._displayPanel.width >= leaf.width and self._displayPanel.height >= leaf.height:
-      # The frame is smaller than the display panel, so put the frame in the centre
-      blitRect = pygame.Rect(
-        (self._displayPanel.width - leaf.width) / 2,
-        self._displayPanel.top + (self._displayPanel.height - leaf.height) / 2,
-        leaf.width,
-        leaf.height
-      )
-    elif self._displayPanel.width / self._displayPanel.height >= leaf.width / leaf.height:
-      # The display panel is wider than the frame to be blitted, so pillarbox the frame
-      height = self._displayPanel.height
-      width = leaf.width / leaf.height * height
-      top = self._displayPanel.top
-      left = self._displayPanel.left + (self._displayPanel.width - width) / 2
-      blitRect = pygame.Rect(left, top, width, height)
-      if leaf.height > blitRect.height:
-        # Downscale the frame to match the display panel's height
-        image = cv2.resize(image, (blitRect.width, blitRect.height), interpolation = cv2.INTER_AREA)
-    else:
-      # The display panel is taller than the frame to be blitted, so letterbox the frame
-      width = self._displayPanel.width
-      height = leaf.height / leaf.width * width
-      left = self._displayPanel.left
-      top = self._displayPanel.top + (self._displayPanel.height - height) / 2
-      blitRect = pygame.Rect(left, top, width, height)
-      if leaf.width > blitRect.width:
-        # Downscale the frame to match the display panel's width
-        image = cv2.resize(image, (blitRect.width, blitRect.height), interpolation = cv2.INTER_AREA)
-
     self._screen.fill((127, 127, 127), rect = self._displayPanel)
 
+    # The leaf is assumed to fit within the display panel, so we just need to shift it
+    # to be in the centre middle.
+    (blitLeft, blitTop) = (self._displayPanel.left, self._displayPanel.top)
+    blitLeft += (self._displayPanel.width - leaf.width) / 2
+    blitTop += (self._displayPanel.height - leaf.height) / 2
+
     surface = pygame.surfarray.make_surface(image.swapaxes(0, 1))
-    self._screen.blit(surface, (blitRect.left, blitRect.top))
+    self._screen.blit(surface, (blitLeft, blitTop))
 
     pygame.display.update(self._displayPanel)
 
