@@ -164,7 +164,10 @@ class Window(object):
                 import win32clipboard
                 import tempfile
                 with tempfile.NamedTemporaryFile(suffix = ".bmp", delete = False) as t:
-                  image = self._leaves[self._currentTab]["clip"].frame(self._leaves[self._currentTab]["currentFrame"])
+                  leaf = self._leaves[self._currentTab]["clip"]
+                  if leaf._artificiallyResized:
+                    leaf = leaf._source[0]
+                  image = leaf.frame(self._leaves[self._currentTab]["currentFrame"])
                   imageio.imwrite(t.name, image)
                   data = t.read()[14:]
                 os.remove(t.name)
@@ -245,7 +248,10 @@ class Window(object):
                 filepath = response
               if filepath:
                 logging.info("Saving frame...")
-                imageio.imwrite(filepath, self._leaves[self._currentTab]["clip"].frame(self._leaves[self._currentTab]["currentFrame"]))
+                leaf = self._leaves[self._currentTab]["clip"]
+                if leaf._artificiallyResized:
+                  leaf = leaf._source[0]
+                imageio.imwrite(filepath, leaf.frame(self._leaves[self._currentTab]["currentFrame"]))
                 logging.info("Saved frame to {}".format(filepath))
           elif key == pygame.K_TAB:
             if duration == 0 or duration > self._fps / 2:

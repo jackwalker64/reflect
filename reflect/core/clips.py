@@ -34,6 +34,7 @@ class Clip(object):
     # Record the time at which this clip was constructed
     self._timestamp = clipConstructionCounter[0]
     clipConstructionCounter[0] += 1
+    self._artificiallyResized = False
 
 
 
