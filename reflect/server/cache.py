@@ -207,6 +207,7 @@ class Cache:
 
     Side effects:
     * Each clip in `graph` has a `cacheEntry` property pointing to its entry in the cache.
+    * Each clip in `graph` has a new dict property `indirectionsTakenCareOf` (which can be ignored).
     """
 
     import time
@@ -224,7 +225,7 @@ class Cache:
       cacheEntry.age += 1
 
     # Post-order graph traversal starting from the leaves
-    N = [0]
+    N = [0] # debug counter
     def traverse(node):
       if node.cacheEntry is not None:
         # This node has already been visited
@@ -243,6 +244,7 @@ class Cache:
             cacheEntry.precedesHotnode = False
             cacheEntry.rootDistance = 0
             cacheEntry.isIndirection = node.isIndirection
+            cacheEntry.associatedIndirections = []
             cacheEntry.age = 0
         elif isinstance(node._source, tuple):
           # First visit this node's sources
@@ -288,6 +290,7 @@ class Cache:
             cacheEntry.precedesHotnode = False
             cacheEntry.rootDistance = maxRootDistance + 1
             cacheEntry.isIndirection = node.isIndirection
+            cacheEntry.associatedIndirections = []
             cacheEntry.age = 0
 
           # Make sure the source cacheEntries (predecessors) know that this cacheEntry is one of their successors.
@@ -297,24 +300,59 @@ class Cache:
             if id(cacheEntry) not in sourceCacheEntry.successors[node.__hash__()]:
               sourceCacheEntry.successors[node.__hash__()][id(cacheEntry)] = cacheEntry
 
-          if cacheEntry.isIndirection:
-            # DFS to find all nodes that this node is an indirection of, i.e. the nodes containing
-            # the exact frames that this node may produce.
-            def dfs(node, indirection):
-              if isinstance(node._source, tuple):
-                for source in node._source:
-                  if not source.cacheEntry.isIndirection:
-                    if id(indirection) not in [id(associatedIndirection) for associatedIndirection in source.cacheEntry.associatedIndirections]:
-                      source.cacheEntry.associatedIndirections.append(indirection)
-                  else:
-                    # This source is also an indirection, so we must recurse
-                    dfs(source, indirection)
-            dfs(node, cacheEntry)
-
         node.cacheEntry = cacheEntry
+        node.indirectionsTakenCareOf = []
         return cacheEntry
     for leaf in graph.leaves:
       traverse(leaf)
+
+    # In the case when an indirection I has high priority, and the nodes N that it is an
+    # indirection of have low raw priority, the nodes N need to know that their effective priority
+    # should in fact be that of I. This is achieved by assigning to each cache entry a list
+    # (`associatedIndirections`) from which it can work out the maximum priority.
+    M = [0] # debug counter
+    def associateIndirections(node, indirections):
+      if isinstance(node._source, str) or node._source is None:
+        # The node is a root
+        node.cacheEntry.associatedIndirections.extend(indirections.values())
+      elif isinstance(node._source, tuple):
+        M[0] += 1
+        if node.cacheEntry.isIndirection:
+          # Add this node's cache entry to the accumulating list of indirections if necessary,
+          # and recurse.
+          if not node.indirectionsTakenCareOf:
+            indirections = indirections.copy()
+            indirections[id(node.cacheEntry)] = node.cacheEntry
+            node.indirectionsTakenCareOf = indirections.copy()
+          else:
+            # Remove any indirections from the current list that have already been taken care of
+            # by a previous visit to this node.
+            indirectionIdsToDelete = []
+            for indirectionId, indirection in indirections.items():
+              if indirectionId in node.indirectionsTakenCareOf:
+                indirectionIdsToDelete.append(indirectionId)
+              else:
+                node.indirectionsTakenCareOf[indirectionId] = indirection
+            for indirectionId in indirectionIdsToDelete:
+              del indirections[indirectionId]
+            if not indirections:
+              # This node and any subsequent indirections have already been taken care of, and there
+              # is nothing in the current indirections list to be carried along in the recursion, so
+              # we can stop here.
+              return
+          for source in node._source:
+            associateIndirections(source, indirections)
+        else:
+          # This node is not an indirection, so set its associated indirections list.
+          node.cacheEntry.associatedIndirections.extend(indirections.values())
+          # A predecessor of this node may be an indirection, so if it hasn't already been taken
+          # care of then begin the recursion again from this node.
+          if not node.indirectionsTakenCareOf:
+            node.indirectionsTakenCareOf = indirections.copy()
+            for source in node._source:
+              associateIndirections(source, {})
+    for leaf in graph.leaves:
+      associateIndirections(leaf, {})
 
     # Get rid of cache entries that are old, empty, and have low priority
     minimumPriority = 0.5 # Magic number
