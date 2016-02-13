@@ -234,6 +234,11 @@ class VideoClip(Clip):
       if filepath.lower().endswith(extension):
         saveMethod = self._saveGif
 
+    imageExtensions = [".png", ".jpg", ".jpeg", ".bmp", ".ppm", ".tiff", ".psd"]
+    for extension in imageExtensions:
+      if filepath.lower().endswith(extension):
+        saveMethod = self._saveImage
+
     if saveMethod is not None:
       if mode == "server":
         # Potentially many frames are about to be rendered while the script is running.
@@ -342,6 +347,18 @@ class VideoClip(Clip):
       im = self.frame(i)
       writer.append_data(im)
     writer.close()
+
+
+
+  def _saveImage(self, filepath, **kwargs):
+    import math
+    for i in range(0, self.frameCount):
+      uri = "{0}_{1:0>{width}}.png".format(
+        os.path.splitext(filepath)[0],
+        i,
+        width = math.floor(math.log10(self.frameCount)) + 1
+      )
+      imageio.imwrite(uri, self.frame(i))
 
 
 
