@@ -274,7 +274,8 @@ class VideoClip(Clip):
       "uri": filepath,
       "format": "FFMPEG",
       "mode": "I",
-      "ffmpeg_params": []
+      "ffmpeg_params": [],
+      "macro_block_size": 8
     }
 
     if "fps" in kwargs:
