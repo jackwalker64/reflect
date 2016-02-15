@@ -136,7 +136,6 @@ class ScriptRunner(threading.Thread):
     print("")
     print("")
     logging.info("{}: Entering {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(self._filepath)))
-    print("")
 
     # Discard the old the composition graph
     reflect.CompositionGraph.reset()
@@ -157,12 +156,10 @@ class ScriptRunner(threading.Thread):
         traceback.print_exc()
         failed = True
 
-    print("")
     logging.info("{}: Exited {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(self._filepath)))
 
     print("")
     logging.info(cache)
-    print("")
     cache.userScriptIsRunning = False
 
     if failed:
@@ -187,7 +184,6 @@ class ScriptRunner(threading.Thread):
     # Commit any staged frames into the main cache
     cache.commit()
 
-    print("")
     logging.info(cache)
 
     # Close readers that were opened in the previous session but not claimed in the current session
