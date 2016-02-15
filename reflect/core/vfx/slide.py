@@ -126,12 +126,30 @@ class SlideTransitionVideoClip(VideoClip):
 
     image = clip.frame(clip.frameCount - frameCount + n)
 
-    if origin == "right":
+    blittedImage = numpy.copy(image)
+    if origin == "top":
+      h = int(progress * clip.height)
+      w = successor.width
+      y = clip.height - h
+      imageToBlit = successor.frame(n)[y:clip.height, 0:w]
+      blittedImage[0:h, 0:w] = imageToBlit
+    elif origin == "bottom":
+      h = int(progress * clip.height)
+      w = successor.width
+      imageToBlit = successor.frame(n)[0:h, 0:w]
+      y = clip.height - h
+      blittedImage[y:clip.height, 0:clip.width] = imageToBlit
+    elif origin == "left":
+      h = successor.height
+      w = int(progress * clip.width)
+      x = clip.width - w
+      imageToBlit = successor.frame(n)[0:h, x:clip.width]
+      blittedImage[0:h, 0:w] = imageToBlit
+    elif origin == "right":
       h = successor.height
       w = int(progress * clip.width)
       imageToBlit = successor.frame(n)[0:h, 0:w]
       x = clip.width - w
-      blittedImage = numpy.copy(image)
       blittedImage[0:h, x:clip.width] = imageToBlit
 
     return blittedImage
