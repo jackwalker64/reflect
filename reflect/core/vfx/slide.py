@@ -81,11 +81,14 @@ class SlideTransitionVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, origin, frameCount, f):
-    super().__init__(source, metadata, isIndirection = True)
+    super().__init__(source, metadata)
 
     self._origin = origin
     self._frameCount = frameCount
     self._f = f
+
+    # Compute the codomain of f
+    self._fValues = [f(x, 0.0, 1.0, frameCount) for x in range(0, frameCount)]
 
 
 
@@ -101,9 +104,11 @@ class SlideTransitionVideoClip(VideoClip):
     if type(other) == type(self):
       # The parent class parts must be the same
       if super()._pseudoeq(other):
-        # The slide parameters must be the same
-        import inspect
-        if self._origin == other._origin and self._frameCount == other._frameCount and inspect.getsource(self._f) == inspect.getsource(other._f):
+        # The slide parameters must be the same.
+        # In particular, the effects of the easing functions f should be the same; this is
+        # implemented by comparing all possible outputs of the two functions. This is reasonable as
+        # long as the duration of this SlideTransitionVideoClip isn't too large.
+        if self._origin == other._origin and self._frameCount == other._frameCount and self._fValues == other._fValues:
           return True
 
     return False
@@ -120,9 +125,9 @@ class SlideTransitionVideoClip(VideoClip):
     successor = self._source[1]
     origin = self._origin
     frameCount = self._frameCount
-    f = self._f
+    fValues = self._fValues
 
-    progress = f(n, 0.0, 1.0, frameCount)
+    progress = fValues[n]
 
     image = clip.frame(clip.frameCount - frameCount + n)
 
