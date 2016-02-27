@@ -226,6 +226,7 @@ class Cache:
 
     # Post-order graph traversal starting from the leaves
     N = [0] # debug counter
+    traverseTime = [time.time()]
     def traverse(node):
       if node.cacheEntry is not None:
         # This node has already been visited
@@ -236,9 +237,9 @@ class Cache:
           # This node is a root
           cacheEntry = self._committed.get(node, None)
           if cacheEntry is None:
-            cacheEntry = CacheEntry(node = node, isRoot = True, isHotnode = True, precedesHotnode = False, rootDistance = 0, isIndirection = node.isIndirection)
+            cacheEntry = CacheEntry(node = node, isRoot = True, isHotnode = True, precedesHotnode = False, rootDistance = 0, isIndirection = node.isIndirection, traverseTime = traverseTime[0])
             self._committed[node] = cacheEntry
-          else:
+          elif cacheEntry.traverseTime != traverseTime[0]: # Avoid updating the same cacheEntry more than once during this reprioritisation
             cacheEntry.isRoot = True
             cacheEntry.isHotnode = (cacheEntry.age > 1) # True iff the node was not in the previous graph
             cacheEntry.precedesHotnode = False
@@ -246,6 +247,7 @@ class Cache:
             cacheEntry.isIndirection = node.isIndirection
             cacheEntry.associatedIndirections = []
             cacheEntry.age = 0
+            cacheEntry.traverseTime = traverseTime[0]
         elif isinstance(node._source, tuple):
           # First visit this node's sources
           sourceCacheEntries = []
@@ -282,9 +284,9 @@ class Cache:
               maxRootDistance = sourceCacheEntry.rootDistance
 
           if cacheEntry is None:
-            cacheEntry = CacheEntry(node = node, isRoot = False, isHotnode = True, precedesHotnode = False, rootDistance = maxRootDistance + 1, isIndirection = node.isIndirection)
+            cacheEntry = CacheEntry(node = node, isRoot = False, isHotnode = True, precedesHotnode = False, rootDistance = maxRootDistance + 1, isIndirection = node.isIndirection, traverseTime = traverseTime[0])
             self._committed[node] = cacheEntry
-          else:
+          elif cacheEntry.traverseTime != traverseTime[0]: # Avoid updating the same cacheEntry more than once during this reprioritisation
             cacheEntry.isRoot = False
             cacheEntry.isHotnode = (cacheEntry.age > 1) # True iff the node was not in the previous graph
             cacheEntry.precedesHotnode = False
@@ -292,6 +294,7 @@ class Cache:
             cacheEntry.isIndirection = node.isIndirection
             cacheEntry.associatedIndirections = []
             cacheEntry.age = 0
+            cacheEntry.traverseTime = traverseTime[0]
 
           # Make sure the source cacheEntries (predecessors) know that this cacheEntry is one of their successors.
           for sourceCacheEntry in sourceCacheEntries:
@@ -453,7 +456,7 @@ class CacheEntry(dict):
 
 
 
-  def __init__(self, node, isRoot, isHotnode, precedesHotnode, rootDistance, isIndirection):
+  def __init__(self, node, isRoot, isHotnode, precedesHotnode, rootDistance, isIndirection, traverseTime):
     super().__init__()
 
     self.age = 0
@@ -465,6 +468,7 @@ class CacheEntry(dict):
     self.isIndirection = isIndirection
     self.associatedIndirections = []
     self.successors = {}
+    self.traverseTime = traverseTime
 
 
 
