@@ -146,6 +146,11 @@ class VideoClip(Clip):
     # self.audio = audio
     # self.mask = mask
 
+    self._childCount = 0
+    if isinstance(self._source, tuple):
+      for source in self._source:
+        source._childCount += 1
+
     self._constantImage = None # Used as a local cache when not in server mode
 
 

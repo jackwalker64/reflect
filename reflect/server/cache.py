@@ -410,13 +410,14 @@ class Cache:
         else:
           fillColour = "#ffffff"
         notCacheable = node.cacheEntry.isIndirection
-        pydotNode = pydotplus.Node("{}{}\np={}\nn={}\niI={}\niC={}".format(
+        pydotNode = pydotplus.Node("{}{}\np={}\nn={}\niI={}\niC={}\nch={}".format(
           keyNode,
           i[0],
           round(self._committed[keyNode].priority, 1),
           "N/A ({})".format(len(self._committed[keyNode])) if notCacheable else len(self._committed[keyNode]),
           node.cacheEntry.isIndirection,
-          node._isConstant
+          node._isConstant,
+          node._childCount
         ), style = "filled", fillcolor = fillColour)
         G.add_node(pydotNode)
         visited[node] = pydotNode
@@ -432,7 +433,7 @@ class Cache:
     for node in self._committed:
       if node not in visited:
         i[0] += 1
-        G.add_node(pydotplus.Node("{}{}, p={}".format(node, i[0], round(node.cacheEntry.priority, 1)), style = "filled", fillcolor = "#aaaaaa"))
+        # G.add_node(pydotplus.Node("{}{}, p={}".format(node, i[0], round(node.cacheEntry.priority, 1)), style = "filled", fillcolor = "#aaaaaa"))
 
     G.write_png(filepath)
 

@@ -35,14 +35,32 @@ def concat(clip, *others, autoResize = True):
     raise TypeError("expected at least two clips to concatenate together")
 
   if autoResize:
-    othersTuple = tuple([(other.resize(size = clip.size) if other.size != clip.size else other) for other in others])
+    others = [(other.resize(size = clip.size) if other.size != clip.size else other) for other in others]
   else:
     # TODO: Resize the canvas of each clip to the same dimensions, placing each clip at (0, 0) and making any empty space transparent
-    # (Currently this just passes the clips through at their original dimensions, which means concatenated.frame(n) isn't necessarily constant)
-    othersTuple = tuple(others)
+    raise NotImplementedError()
 
-  # Source: The first VideoClip, and at least one other
-  source = (clip,) + othersTuple
+  # Sources
+  performOptimisation = True
+  if performOptimisation:
+    flattenedOthers = []
+    for other in others:
+      if isinstance(other, ConcatenatedVideoClip):
+        # Grab the sources of the input to avoid stacking ConcatenatedVideoClips
+        flattenedOthers.extend(other._source)
+        if other._childCount == 0:
+          other._graph.removeLeaf(other)
+      else:
+        flattenedOthers.append(other)
+    if isinstance(clip, ConcatenatedVideoClip):
+      # Grab the sources of the input to avoid stacking ConcatenatedVideoClips
+      source = clip._source + tuple(flattenedOthers)
+      if clip._childCount == 0:
+        clip._graph.removeLeaf(clip)
+    else:
+      source = (clip,) + tuple(flattenedOthers)
+  else:
+    source = (clip,) + tuple(others)
 
   # Metadata: Update the duration
   metadata = copy.copy(clip._metadata)
