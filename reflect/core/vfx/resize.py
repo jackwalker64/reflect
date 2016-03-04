@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ..clips import VideoClip, clipMethod, memoizeHash
+from ..clips import VideoClip, clipMethod, memoizeHash, transformations
 import cv2
 import copy
 
@@ -45,13 +45,70 @@ def resize(clip, size = None, width = None, height = None, interpolation = cv2.I
       width = round(height / oldHeight * oldWidth)
     else:
       raise TypeError("resize requires either size, width, or height to be provided")
+  (width, height) = (round(width), round(height))
+
+  if (width, height) == clip.size:
+    # There is no resizing to be done, so just return the source clip
+    return clip
+
+  # Push
+  if "CanonicalOrder" in transformations:
+    from reflect.core import vfx
+    size = (width, height)
+
+    if width*height < clip.width*clip.height:
+      if isinstance(clip, vfx.composite.CompositeVideoClip):
+        # ResizedVideoClip_↓ < CompositeVideoClip
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        bg = clip._source[0]
+        fg = clip._source[1]
+        fgSize = (round(fg.width * width / bg.width), round(fg.height * height / bg.height))
+        x = clip._x1 * width / bg.width
+        y = clip._y1 * height / bg.height
+        return bg.resize(size, interpolation = interpolation).composite(fg.resize(fgSize, interpolation = interpolation), x1 = x, y1 = y)
+      elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
+        # ResizedVideoClip_↓ < SlideTransitionVideoClip
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        a = clip._source[0].resize(size, interpolation = interpolation)
+        b = clip._source[1].resize(size, interpolation = interpolation)
+        return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, f = clip._f, transitionOnly = True)
+      elif isinstance(clip, vfx.subclip.SubVideoClip):
+        # ResizedVideoClip_↓ < SubVideoClip
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].resize(size, interpolation = interpolation).subclip(clip._n1, clip._n2)
+      elif isinstance(clip, vfx.speed.SpedVideoClip):
+        # ResizedVideoClip_↓ < SpedVideoClip
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].resize(size, interpolation = interpolation).speed(clip._scale)
+      elif isinstance(clip, vfx.reverse.ReversedVideoClip):
+        # ResizedVideoClip_↓ < ReversedVideoClip
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].resize(size, interpolation = interpolation).reverse()
+      elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
+        # ResizedVideoClip_↓ < ChangedRateVideoClip
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].resize(size, interpolation = interpolation).rate(clip.fps)
+      elif isinstance(clip, vfx.greyscale.GreyscaleVideoClip):
+        # ResizedVideoClip_↓ < GreyscaleVideoClip
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].resize(size, interpolation = interpolation).greyscale()
+      elif isinstance(clip, vfx.brighten.BrightenedVideoClip):
+        # ResizedVideoClip_↓ < BrightenedVideoClip
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].resize(size, interpolation = interpolation).brighten(clip._amount)
+
+    if isinstance(clip, vfx.concat.ConcatenatedVideoClip):
+      # ResizedVideoClip_↑ < ConcatenatedVideoClip
+      # ResizedVideoClip_↓ < ConcatenatedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return (clip._source[0].resize(size, interpolation = interpolation)).concat([s.resize(size, interpolation = interpolation) for s in clip._source[1:]])
 
   # Source: A single VideoClip to be resized
   source = (clip,)
 
   # Metadata: Update the dimensions
   metadata = copy.copy(clip._metadata)
-  metadata.size = (round(width), round(height))
+  metadata.size = (width, height)
 
   return ResizedVideoClip(source, metadata, interpolation)
 

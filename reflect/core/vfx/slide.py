@@ -8,12 +8,14 @@ import numpy
 
 
 @clipMethod
-def slide(clip, successor, origin, duration = None, frameCount = None, f = None):
-  """slide(clip, successor, origin, duration = None, frameCount = None, f = None):
+def slide(clip, successor, origin, duration = None, frameCount = None, f = None, transitionOnly = False):
+  """slide(clip, successor, origin, duration = None, frameCount = None, f = None, transitionOnly = False):
 
   Returns the concatenation of `clip` and `successor`, but with a "sliding in" transition defined
   by the `origin` ("top" | "bottom" | "left" | "right"), the specified `duration`/`frameCount`,
   and optionally an easing function f : int × int → float.
+
+  The `transitionOnly` parameter can be set to True to only return the sliding part of the resulting clip.
 
   Examples
   --------
@@ -50,6 +52,9 @@ def slide(clip, successor, origin, duration = None, frameCount = None, f = None)
 
   # Generate the transition
   transition = slideTransition(clip, successor, origin, frameCount, f)
+
+  if transitionOnly:
+    return transition
 
   if frameCount == clip.frameCount:
     if frameCount == successor.frameCount:

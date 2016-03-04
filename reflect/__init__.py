@@ -12,5 +12,8 @@ from .core.roots.text import text
 def setMode(mode):
   core.clips.mode = mode
 
+def setTransformations(transformations):
+  core.clips.transformations = transformations
+
 def setVisualiseFilepath(filepath):
   cache.visualiseFilepath = filepath

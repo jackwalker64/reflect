@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ..clips import VideoClip, clipMethod, memoizeHash
+from ..clips import VideoClip, clipMethod, memoizeHash, transformations
 import copy
 import collections
 
@@ -41,8 +41,7 @@ def concat(clip, *others, autoResize = True):
     raise NotImplementedError()
 
   # Sources
-  performOptimisation = True
-  if performOptimisation:
+  if "FlattenConcats" in transformations:
     flattenedOthers = []
     for other in others:
       if isinstance(other, ConcatenatedVideoClip):

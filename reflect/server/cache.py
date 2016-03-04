@@ -413,14 +413,19 @@ class Cache:
         else:
           fillColour = "#ffffff"
         notCacheable = node.cacheEntry.isIndirection
-        pydotNode = pydotplus.Node("{}{}\np={}\nn={}\niI={}\niC={}\nch={}".format(
+        extra = ""
+        from reflect.core import vfx
+        if isinstance(keyNode, vfx.subclip.SubVideoClip):
+          extra = "[{}, {}]".format(keyNode._n1, keyNode._n2)
+        pydotNode = pydotplus.Node("{}{}\np={}\nn={}\niI={}\niC={}\nch={}\n{}".format(
           keyNode,
           i[0],
           round(self._committed[keyNode].priority, 1),
           "N/A ({})".format(len(self._committed[keyNode])) if notCacheable else len(self._committed[keyNode]),
           node.cacheEntry.isIndirection,
           node._isConstant,
-          node._childCount
+          node._childCount,
+          extra
         ), style = "filled", fillcolor = fillColour)
         G.add_node(pydotNode)
         visited[node] = pydotNode

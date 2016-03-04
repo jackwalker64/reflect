@@ -7,7 +7,8 @@ import os
 import inspect
 import time
 
-mode = "normal"
+mode = "normal" # "normal" or "server"
+transformations = ["CanonicalOrder", "FlattenConcats"]
 
 clipConstructionCounter = [0] # Used for ordering clips by the time at which they were constructed
 
