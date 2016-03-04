@@ -7,8 +7,8 @@ import copy
 
 
 @clipMethod
-def resize(clip, size = None, width = None, height = None):
-  """resize(clip, size = None, width = None, height = None)
+def resize(clip, size = None, width = None, height = None, interpolation = cv2.INTER_AREA):
+  """resize(clip, size = None, width = None, height = None, interpolation = cv2.INTER_AREA)
 
   Returns a copy of `clip` with the new frame dimensions.
 
@@ -19,6 +19,7 @@ def resize(clip, size = None, width = None, height = None):
   >>> clip.resize(width = 1280)                # 1280×? where ? is computed automatically to preserve aspect ratio
   >>> clip.resize(height = 720)                # ?×720 where ? is computed automatically to preserve aspect ratio
   >>> clip.resize(width = 1280, height = 1024) # 1280×1024
+  >>> clip.resize(0.5, cv2.INTER_NEAREST)      # (0.5*oldWidth)×(0.5*oldHeight) with nearest-neighbour interpolation
   """
 
   if not isinstance(clip, VideoClip):
@@ -52,7 +53,7 @@ def resize(clip, size = None, width = None, height = None):
   metadata = copy.copy(clip._metadata)
   metadata.size = (round(width), round(height))
 
-  return ResizedVideoClip(source, metadata)
+  return ResizedVideoClip(source, metadata, interpolation)
 
 
 
@@ -64,8 +65,10 @@ class ResizedVideoClip(VideoClip):
 
 
 
-  def __init__(self, source, metadata):
+  def __init__(self, source, metadata, interpolation):
     super().__init__(source, metadata, isConstant = source[0]._isConstant)
+
+    self._interpolation = interpolation
 
 
 
@@ -80,7 +83,9 @@ class ResizedVideoClip(VideoClip):
     if type(other) == type(self):
       # The parent class parts must be the same
       if super()._pseudoeq(other):
-        return True
+        # The interpolation modes must be the same
+        if self._interpolation == other._interpolation:
+          return True
 
     return False
 
@@ -93,4 +98,4 @@ class ResizedVideoClip(VideoClip):
 
   def _framegen(self, n):
     image = self._source[0].frame(n)
-    return cv2.resize(image, self.size, interpolation = cv2.INTER_AREA)
+    return cv2.resize(image, self.size, interpolation = self._interpolation)
