@@ -74,7 +74,7 @@ class ResizedVideoClip(VideoClip):
 
   @memoizeHash
   def __hash__(self):
-    return hash((super().__hash__(), other._interpolation))
+    return hash((super().__hash__(), self._interpolation))
 
 
 
