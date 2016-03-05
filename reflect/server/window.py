@@ -165,8 +165,6 @@ class Window(object):
                 import tempfile
                 with tempfile.NamedTemporaryFile(suffix = ".bmp", delete = False) as t:
                   leaf = self._leaves[self._currentTab]["clip"]
-                  if leaf._artificiallyResized:
-                    leaf = leaf._source[0]
                   image = leaf.frame(self._leaves[self._currentTab]["currentFrame"])
                   imageio.imwrite(t.name, image)
                   data = t.read()[14:]
@@ -249,8 +247,6 @@ class Window(object):
               if filepath:
                 logging.info("Saving frame...")
                 leaf = self._leaves[self._currentTab]["clip"]
-                if leaf._artificiallyResized:
-                  leaf = leaf._source[0]
                 imageio.imwrite(filepath, leaf.frame(self._leaves[self._currentTab]["currentFrame"]))
                 logging.info("Saved frame to {}".format(filepath))
           elif key == pygame.K_TAB:
