@@ -30,7 +30,7 @@ def reverse(clip):
       if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
         # ReversedVideoClip < ResizedVideoClip_↑
         if clip._childCount == 0: clip._graph.removeLeaf(clip)
-        return clip._source[0].reverse().resize(clip.size, clip._interpolation)
+        return clip._source[0].reverse().resize(clip.size, interpolation = clip._interpolation)
       else:
         # ReversedVideoClip > ResizedVideoClip_↓
         pass

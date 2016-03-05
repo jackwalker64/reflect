@@ -42,7 +42,7 @@ def rate(clip, fps = None, delay = None):
       if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
         # ChangedRateVideoClip < ResizedVideoClip_↑
         if clip._childCount == 0: clip._graph.removeLeaf(clip)
-        return clip._source[0].rate(fps).resize(clip.size, clip._interpolation)
+        return clip._source[0].rate(fps).resize(clip.size, interpolation = clip._interpolation)
       else:
         # ChangedRateVideoClip > ResizedVideoClip_↓
         pass

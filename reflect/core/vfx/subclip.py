@@ -76,7 +76,7 @@ def subclip(clip, n1 = None, n2 = None, frameCount = None, t1 = None, t2 = None,
       if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
         # SubVideoClip < ResizedVideoClip_↑
         if clip._childCount == 0: clip._graph.removeLeaf(clip)
-        return clip._source[0].subclip(n1, n2).resize(clip.size, clip._interpolation)
+        return clip._source[0].subclip(n1, n2).resize(clip.size, interpolation = clip._interpolation)
       else:
         # SubVideoClip > ResizedVideoClip_↓
         pass

@@ -37,10 +37,10 @@ def brighten(clip, amount):
       # BrightenedVideoClip > CroppedVideoClip
       pass
     elif isinstance(clip, vfx.resize.ResizedVideoClip):
-      if clip.width * clip.height >= clip._source[0].width * clip._source[0].height and clip._interpolation == interpolation:
+      if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
         # BrightenedVideoClip < ResizedVideoClip_↑
         if clip._childCount == 0: clip._graph.removeLeaf(clip)
-        return clip._source[0].brighten(amount).resize(clip.size, clip._interpolation)
+        return clip._source[0].brighten(amount).resize(clip.size, interpolation = clip._interpolation)
       else:
         # BrightenedVideoClip > ResizedVideoClip_↓
         pass

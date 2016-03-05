@@ -52,7 +52,7 @@ def speed(clip, scale = None, duration = None, frameCount = None):
       if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
         # SpedVideoClip < ResizedVideoClip_↑
         if clip._childCount == 0: clip._graph.removeLeaf(clip)
-        return clip._source[0].speed(scale).resize(clip.size, clip._interpolation)
+        return clip._source[0].speed(scale).resize(clip.size, interpolation = clip._interpolation)
       else:
         # SpedVideoClip > ResizedVideoClip_↓
         pass
