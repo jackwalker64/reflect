@@ -336,7 +336,7 @@ class Window(object):
       # Render the clip's frame and resize it to be used as an icon in the tabstrip
       image = leaf.frame(0)
       newHeight = self._tabstripPanel.height - 4
-      newWidth = int(leaf.width * newHeight / leaf.height)
+      newWidth = max(round(newHeight / 2), round(leaf.width * newHeight / leaf.height))
       resizedImage = cv2.resize(image, (newWidth, newHeight), interpolation = cv2.INTER_AREA)
       surface = pygame.surfarray.make_surface(resizedImage.swapaxes(0, 1))
       return surface
