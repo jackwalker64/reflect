@@ -40,7 +40,7 @@ class Window(object):
     # Set up the geometry of the window panels
     self._windowWidth = 900
     self._tabstripPanel = pygame.Rect(0, 0, self._windowWidth, 25)
-    self._displayPanel = pygame.Rect(0, self._tabstripPanel.bottom, self._windowWidth, 480)
+    self._displayPanel = pygame.Rect(0, self._tabstripPanel.bottom, self._windowWidth, 540)
     self._timelinePanel = pygame.Rect(0, self._displayPanel.bottom, self._windowWidth, 8)
     self._controlbarPanel = pygame.Rect(0, self._timelinePanel.bottom, self._windowWidth, 25)
     self._controlbarPlayRect = pygame.Rect(self._controlbarPanel.left, self._controlbarPanel.top, 26, 25)
