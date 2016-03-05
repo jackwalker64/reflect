@@ -67,13 +67,13 @@ class BlurredVideoClip(VideoClip):
   def __init__(self, source, metadata, size):
     super().__init__(source, metadata, isConstant = source[0]._isConstant)
 
-    self._size = size
+    self._blurSize = size
 
 
 
   @memoizeHash
   def __hash__(self):
-    return hash((super().__hash__(), self._size))
+    return hash((super().__hash__(), self._blurSize))
 
 
 
@@ -83,7 +83,7 @@ class BlurredVideoClip(VideoClip):
       # The parent class parts must be the same
       if super()._pseudoeq(other):
         # The blur size must be the same
-        if self._size == other._size:
+        if self._blurSize == other._blurSize:
           return True
 
     return False
@@ -97,4 +97,4 @@ class BlurredVideoClip(VideoClip):
 
   def _framegen(self, n):
     image = self._source[0].frame(n)
-    return cv2.blur(image, self._size)
+    return cv2.blur(image, self._blurSize)

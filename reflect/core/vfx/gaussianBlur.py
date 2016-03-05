@@ -68,14 +68,14 @@ class GaussianBlurredVideoClip(VideoClip):
   def __init__(self, source, metadata, size, sigma):
     super().__init__(source, metadata, isConstant = source[0]._isConstant)
 
-    self._size = size
+    self._blurSize = size
     self._sigma = sigma
 
 
 
   @memoizeHash
   def __hash__(self):
-    return hash((super().__hash__(), self._size, self._sigma))
+    return hash((super().__hash__(), self._blurSize, self._sigma))
 
 
 
@@ -85,7 +85,7 @@ class GaussianBlurredVideoClip(VideoClip):
       # The parent class parts must be the same
       if super()._pseudoeq(other):
         # The gaussian blur parameters must be the same
-        if self._size == other._size and self._sigma == other._sigma:
+        if self._blurSize == other._blurSize and self._sigma == other._sigma:
           return True
 
     return False
@@ -99,4 +99,4 @@ class GaussianBlurredVideoClip(VideoClip):
 
   def _framegen(self, n):
     image = self._source[0].frame(n)
-    return cv2.GaussianBlur(image, self._size, self._sigma[0], self._sigma[1])
+    return cv2.GaussianBlur(image, self._blurSize, self._sigma[0], self._sigma[1])
