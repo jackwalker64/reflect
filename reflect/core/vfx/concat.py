@@ -3,6 +3,8 @@
 from ..clips import VideoClip, clipMethod, memoizeHash, transformations
 import copy
 import collections
+from itertools import accumulate
+from bisect import bisect_left
 
 
 
@@ -80,6 +82,8 @@ class ConcatenatedVideoClip(VideoClip):
   def __init__(self, source, metadata):
     super().__init__(source, metadata, isIndirection = True, isConstant = len(source) == 1 and source[0]._isConstant)
 
+    self._sourceStartFrames = None # Initialised only when it's needed
+
 
 
   @memoizeHash
@@ -107,15 +111,17 @@ class ConcatenatedVideoClip(VideoClip):
   def _framegen(self, n):
     image = None
 
-    i = 0
-    for clip in self._source:
-      if n < i + clip.frameCount:
-        image = clip.frame(n - i)
-        break
-      else:
-        i += clip.frameCount
+    if self._sourceStartFrames is None:
+      self._sourceStartFrames = list(accumulate([clip.frameCount for clip in self._source]))
 
-    if image is None:
+    clipIndex = bisect_left(self._sourceStartFrames, n + 1)
+    if clipIndex == 0:
+      offset = 0
+    elif clipIndex < len(self._source):
+      offset = self._sourceStartFrames[clipIndex - 1]
+    else:
       raise IndexError("received a request for the frame at index {}, but this sequence of video clips contains only {} frames".format(n, self.frameCount))
+    clip = self._source[clipIndex]
+    image = clip.frame(n - offset)
 
     return image
