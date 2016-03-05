@@ -31,6 +31,66 @@ def rate(clip, fps = None, delay = None):
   if fps is None:
     raise TypeError("expected one of fps or delay to be specified")
 
+  # Push
+  from ..clips import transformations
+  if "CanonicalOrder" in transformations:
+    from reflect.core import vfx
+    if isinstance(clip, vfx.crop.CroppedVideoClip):
+      # ChangedRateVideoClip > CroppedVideoClip
+      pass
+    elif isinstance(clip, vfx.resize.ResizedVideoClip):
+      if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
+        # ChangedRateVideoClip < ResizedVideoClip_↑
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].rate(fps).resize(clip.size, clip._interpolation)
+      else:
+        # ChangedRateVideoClip > ResizedVideoClip_↓
+        pass
+    elif isinstance(clip, vfx.brighten.BrightenedVideoClip):
+      # ChangedRateVideoClip > BrightenedVideoClip
+      pass
+    elif isinstance(clip, vfx.greyscale.GreyscaleVideoClip):
+      # ChangedRateVideoClip > GreyscaleVideoClip
+      pass
+    elif isinstance(clip, vfx.blur.BlurredVideoClip):
+      # ChangedRateVideoClip > BlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.gaussianBlur.GaussianBlurredVideoClip):
+      # ChangedRateVideoClip > GaussianBlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
+      # ChangedRateVideoClip = ChangedRateVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].rate(fps)
+    elif isinstance(clip, vfx.reverse.ReversedVideoClip):
+      # ChangedRateVideoClip < ReversedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].rate(fps).reverse()
+    elif isinstance(clip, vfx.speed.SpedVideoClip):
+      # ChangedRateVideoClip < SpedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].rate(fps).speed(clip._scale)
+    elif isinstance(clip, vfx.subclip.SubVideoClip):
+      # ChangedRateVideoClip < SubVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].rate(fps).subclip(clip._n1, clip._n2)
+    elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
+      # ChangedRateVideoClip < SlideTransitionVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      a = clip._source[0].rate(fps)
+      b = clip._source[1].rate(fps)
+      return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, f = clip._f, transitionOnly = True)
+    elif isinstance(clip, vfx.composite.CompositeVideoClip):
+      # ChangedRateVideoClip < CompositeVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      bg = clip._source[0]
+      fg = clip._source[1]
+      return bg.rate(fps).composite(fg.rate(fps), x1 = clip._x1, y1 = clip._y1)
+    elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
+      # ChangedRateVideoClip < ConcatenatedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return (clip._source[0].rate(fps)).concat([s.rate(fps) for s in clip._source[1:]])
+
   # Source: A single VideoClip
   source = (clip,)
 

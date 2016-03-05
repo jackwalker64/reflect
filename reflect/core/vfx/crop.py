@@ -79,6 +79,92 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
   if y2 > clip.height:
     raise ValueError("the crop region exceeds the clip's bottom boundary by {} pixels (y2 = {})".format(y2 - clip.height, y2))
 
+  if x1 == 0 and y1 == 0 and x2 == clip.width and y2 == clip.height:
+    return clip
+
+  # Push
+  from ..clips import transformations
+  if "CanonicalOrder" in transformations:
+    from reflect.core import vfx
+    if isinstance(clip, vfx.crop.CroppedVideoClip):
+      # CroppedVideoClip = CroppedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].crop(clip._x1 + x1, clip._y1 + y1, clip._x1 + x2, clip._y1 + y2)
+    elif isinstance(clip, vfx.resize.ResizedVideoClip):
+      # CroppedVideoClip < ResizedVideoClip_↓
+      # CroppedVideoClip < ResizedVideoClip_↑
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      (wScale, hScale) = (clip.width / clip._source[0].width, clip.height / clip._source[0].height)
+      return clip._source[0].crop(x1/wScale, y1/hScale, x2/wScale, y2/hScale).resize(size = (x2 - x1, y2 - y1), interpolation = clip._interpolation)
+    elif isinstance(clip, vfx.brighten.BrightenedVideoClip):
+      # CroppedVideoClip < BrightenedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].crop(x1, y1, x2, y2).brighten(clip._amount)
+    elif isinstance(clip, vfx.greyscale.GreyscaleVideoClip):
+      # CroppedVideoClip < GreyscaleVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].crop(x1, y1, x2, y2).greyscale()
+    elif isinstance(clip, vfx.blur.BlurredVideoClip):
+      # CroppedVideoClip | BlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.gaussianBlur.GaussianBlurredVideoClip):
+      # CroppedVideoClip | GaussianBlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
+      # CroppedVideoClip < ChangedRateVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].crop(x1, y1, x2, y2).rate(clip.fps)
+    elif isinstance(clip, vfx.reverse.ReversedVideoClip):
+      # CroppedVideoClip < ReversedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].crop(x1, y1, x2, y2).reverse()
+    elif isinstance(clip, vfx.speed.SpedVideoClip):
+      # CroppedVideoClip < SpedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].crop(x1, y1, x2, y2).speed(clip._scale)
+    elif isinstance(clip, vfx.subclip.SubVideoClip):
+      # CroppedVideoClip < SubVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].crop(x1, y1, x2, y2).subclip(clip._n1, clip._n2)
+    elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
+      # CroppedVideoClip < SlideTransitionVideoClip
+      raise NotImplementedError()
+    elif isinstance(clip, vfx.composite.CompositeVideoClip):
+      # CroppedVideoClip < CompositeVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      bg = clip._source[0]
+      fg = clip._source[1]
+      (cx1, cy1, cx2, cy2) = (clip._x1, clip._y1, clip._x1 + fg.width, clip._y1 + fg.height)
+      q1 = ((x1 < cx1) << 3) | ((x1 > cx2) << 2) | ((y1 < cy1) << 1) | ((y1 > cy2) << 0)
+      q2 = ((x2 < cx1) << 3) | ((x2 > cx2) << 2) | ((y2 < cy1) << 1) | ((y2 > cy2) << 0)
+      if q1 == 0 and q2 == 0:
+        # Case 1: The crop region is inside the foreground clip region
+        return fg.crop(x1 - cx1, y1 - cy1, x2 - cx1, y2 - cy1)
+      elif q1 & q2 != 0:
+        # Case 2: The crop region is outside the foreground clip region
+        return bg.crop(x1, y1, x2, y2)
+      else:
+        # Case 3: The crop region touches the foreground clip's edge
+        fgCropRegion = (
+          max(0, x1 - cx1),
+          max(0, y1 - cy1),
+          min(fg.width, x2 - cx1),
+          min(fg.height, y2 - cy1)
+        )
+        newCompositePoint = (
+          max(0, cx1 - x1),
+          max(0, cy1 - y1)
+        )
+        return bg.crop(x1, y1, x2, y2).composite(
+          fg.crop(fgCropRegion[0], fgCropRegion[1], fgCropRegion[2], fgCropRegion[3]),
+          x1 = newCompositePoint[0],
+          y1 = newCompositePoint[1]
+        )
+    elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
+      # CroppedVideoClip < ConcatenatedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return (clip._source[0].crop(x1, y1, x2, y2)).concat([s.crop(x1, y1, x2, y2) for s in clip._source[1:]])
+
   # Source: A single VideoClip to be cropped
   source = (clip,)
 

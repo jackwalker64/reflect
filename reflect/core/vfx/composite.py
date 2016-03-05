@@ -118,6 +118,22 @@ def composite(clip, fg, x1 = None, y1 = None, t1 = None, x2 = None, y2 = None, x
 @clipMethod
 def compositePart(clip, fg, n1, n2, x1, y1):
   middleBg = clip.subclip(n1, n2)
+
+  # Push
+  from ..clips import transformations
+  if "CanonicalOrder" in transformations:
+    from reflect.core import vfx
+    if isinstance(middleBg, vfx.concat.ConcatenatedVideoClip):
+      # CompositeVideoClip < ConcatenatedVideoClip
+      if middleBg._childCount == 0: middleBg._graph.removeLeaf(middleBg)
+      sourceStartFrames = middleBg.sourceStartFrames
+      parts = []
+      offset = 0
+      for index, n in enumerate(sourceStartFrames):
+        parts.append(middleBg._source[index].composite(fg.subclip(offset, n), x1 = x1, y1 = y1))
+        offset = n
+      return parts[0].concat(parts[1:])
+
   metadata = copy.copy(middleBg._metadata)
   return CompositeVideoClip((middleBg, fg), metadata, x1, y1)
 

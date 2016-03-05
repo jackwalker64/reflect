@@ -19,6 +19,67 @@ def reverse(clip):
   if not isinstance(clip, VideoClip):
     raise TypeError("expected a clip of type VideoClip")
 
+  # Push
+  from ..clips import transformations
+  if "CanonicalOrder" in transformations:
+    from reflect.core import vfx
+    if isinstance(clip, vfx.crop.CroppedVideoClip):
+      # ReversedVideoClip > CroppedVideoClip
+      pass
+    elif isinstance(clip, vfx.resize.ResizedVideoClip):
+      if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
+        # ReversedVideoClip < ResizedVideoClip_↑
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].reverse().resize(clip.size, clip._interpolation)
+      else:
+        # ReversedVideoClip > ResizedVideoClip_↓
+        pass
+    elif isinstance(clip, vfx.brighten.BrightenedVideoClip):
+      # ReversedVideoClip > BrightenedVideoClip
+      pass
+    elif isinstance(clip, vfx.greyscale.GreyscaleVideoClip):
+      # ReversedVideoClip > GreyscaleVideoClip
+      pass
+    elif isinstance(clip, vfx.blur.BlurredVideoClip):
+      # ReversedVideoClip > BlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.gaussianBlur.GaussianBlurredVideoClip):
+      # ReversedVideoClip > GaussianBlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
+      # ReversedVideoClip > ChangedRateVideoClip
+      pass
+    elif isinstance(clip, vfx.reverse.ReversedVideoClip):
+      # ReversedVideoClip = ReversedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0]
+    elif isinstance(clip, vfx.speed.SpedVideoClip):
+      # ReversedVideoClip < SpedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].reverse().speed(clip._scale)
+    elif isinstance(clip, vfx.subclip.SubVideoClip):
+      # ReversedVideoClip < SubVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].reverse().subclip(clip.frameCount - clip._n2, clip.frameCount - clip._n1)
+    elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
+      # ReversedVideoClip < SlideTransitionVideoClip
+      # if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      # a = clip._source[0].reverse()
+      # b = clip._source[1].reverse()
+      # return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, f = clip._f, transitionOnly = True)
+      raise NotImplementedError()
+    elif isinstance(clip, vfx.composite.CompositeVideoClip):
+      # ReversedVideoClip < CompositeVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      bg = clip._source[0]
+      fg = clip._source[1]
+      return bg.reverse().composite(fg.reverse(), x1 = clip._x1, y1 = clip._y1)
+    elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
+      # ReversedVideoClip < ConcatenatedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      n = len(clip._source)
+      return (clip._source[n-1].reverse()).concat([s.reverse() for s in reversed(clip._source[0:n-1])])
+
   source = (clip,)
   metadata = copy.copy(clip._metadata)
 

@@ -46,6 +46,57 @@ def blur(clip, size = None, width = None, height = None):
   if not isinstance(width, int) or not isinstance(height, int) or width < 1 or height < 1:
     raise ValueError("blur amounts must be integers greater than or equal to 1")
 
+  # Push
+  from ..clips import transformations
+  if "CanonicalOrder" in transformations:
+    from reflect.core import vfx
+    blurSize = (width, height)
+    if isinstance(clip, vfx.crop.CroppedVideoClip):
+      # BlurredVideoClip > CroppedVideoClip
+      pass
+    elif isinstance(clip, vfx.resize.ResizedVideoClip):
+      # BlurredVideoClip > ResizedVideoClip_↓
+      # BlurredVideoClip | ResizedVideoClip_↑
+      pass
+    elif isinstance(clip, vfx.brighten.BrightenedVideoClip):
+      # BlurredVideoClip > BrightenedVideoClip
+      pass
+    elif isinstance(clip, vfx.greyscale.GreyscaleVideoClip):
+      # BlurredVideoClip > GreyscaleVideoClip
+      pass
+    elif isinstance(clip, vfx.blur.BlurredVideoClip):
+      # BlurredVideoClip | BlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.gaussianBlur.GaussianBlurredVideoClip):
+      # BlurredVideoClip | GaussianBlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
+      # BlurredVideoClip < ChangedRateVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].blur(blurSize).rate(clip.fps)
+    elif isinstance(clip, vfx.reverse.ReversedVideoClip):
+      # BlurredVideoClip < ReversedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].blur(blurSize).reverse()
+    elif isinstance(clip, vfx.speed.SpedVideoClip):
+      # BlurredVideoClip < SpedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].blur(blurSize).speed(clip._scale)
+    elif isinstance(clip, vfx.subclip.SubVideoClip):
+      # BlurredVideoClip < SubVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].blur(blurSize).subclip(clip._n1, clip._n2)
+    elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
+      # BlurredVideoClip | SlideTransitionVideoClip
+      pass
+    elif isinstance(clip, vfx.composite.CompositeVideoClip):
+      # BlurredVideoClip | CompositeVideoClip
+      pass
+    elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
+      # BlurredVideoClip < ConcatenatedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return (clip._source[0].blur(blurSize)).concat([s.blur(blurSize) for s in clip._source[1:]])
+
   # Source: A single VideoClip to be blurred
   source = (clip,)
 

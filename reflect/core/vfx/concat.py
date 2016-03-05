@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ..clips import VideoClip, clipMethod, memoizeHash, transformations
+from ..clips import VideoClip, clipMethod, memoizeHash
 import copy
 import collections
 from itertools import accumulate
@@ -43,6 +43,7 @@ def concat(clip, *others, autoResize = True):
     raise NotImplementedError()
 
   # Sources
+  from ..clips import transformations
   if "FlattenConcats" in transformations:
     flattenedOthers = []
     for other in others:
@@ -111,17 +112,22 @@ class ConcatenatedVideoClip(VideoClip):
   def _framegen(self, n):
     image = None
 
-    if self._sourceStartFrames is None:
-      self._sourceStartFrames = list(accumulate([clip.frameCount for clip in self._source]))
-
-    clipIndex = bisect_left(self._sourceStartFrames, n + 1)
+    clipIndex = bisect_left(self.sourceStartFrames, n + 1)
     if clipIndex == 0:
       offset = 0
     elif clipIndex < len(self._source):
-      offset = self._sourceStartFrames[clipIndex - 1]
+      offset = self.sourceStartFrames[clipIndex - 1]
     else:
       raise IndexError("received a request for the frame at index {}, but this sequence of video clips contains only {} frames".format(n, self.frameCount))
     clip = self._source[clipIndex]
     image = clip.frame(n - offset)
 
     return image
+
+
+
+  @property
+  def sourceStartFrames(self):
+    if self._sourceStartFrames is None:
+      self._sourceStartFrames = list(accumulate([clip.frameCount for clip in self._source]))
+    return self._sourceStartFrames

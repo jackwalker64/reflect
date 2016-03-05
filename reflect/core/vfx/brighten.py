@@ -29,6 +29,75 @@ def brighten(clip, amount):
   if amount < -1 or amount > 1:
     raise ValueError("amount must be between -1 and 1 inclusive")
 
+  # Push
+  from ..clips import transformations
+  if "CanonicalOrder" in transformations:
+    from reflect.core import vfx
+    if isinstance(clip, vfx.crop.CroppedVideoClip):
+      # BrightenedVideoClip > CroppedVideoClip
+      pass
+    elif isinstance(clip, vfx.resize.ResizedVideoClip):
+      if clip.width * clip.height >= clip._source[0].width * clip._source[0].height and clip._interpolation == interpolation:
+        # BrightenedVideoClip < ResizedVideoClip_↑
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].brighten(amount).resize(clip.size, clip._interpolation)
+      else:
+        # BrightenedVideoClip > ResizedVideoClip_↓
+        pass
+    elif isinstance(clip, vfx.brighten.BrightenedVideoClip):
+      a = clip._amount
+      b = amount
+      if b >= 0 and a >= 0:
+        # BrightenedVideoClip_↑ = BrightenedVideoClip_↑
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].brighten(b + a - (a * b))
+      elif b <= 0 and a <= 0:
+        # BrightenedVideoClip_↓ = BrightenedVideoClip_↓
+        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        return clip._source[0].brighten(b + a + (a * b))
+    elif isinstance(clip, vfx.greyscale.GreyscaleVideoClip):
+      # BrightenedVideoClip < GreyscaleVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].brighten(amount).greyscale()
+    elif isinstance(clip, vfx.blur.BlurredVideoClip):
+      # BrightenedVideoClip < BlurredVideoClip
+      return clip._source[0].brighten(amount).blur(clip._blurSize)
+    elif isinstance(clip, vfx.gaussianBlur.GaussianBlurredVideoClip):
+      # BrightenedVideoClip < GaussianBlurredVideoClip
+      return clip._source[0].brighten(amount).gaussianBlur(size = clip._blurSize, sigmaX = clip._sigma[0], sigmaY = clip.sigma[1])
+    elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
+      # BrightenedVideoClip < ChangedRateVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].brighten(amount).rate(clip.fps)
+    elif isinstance(clip, vfx.reverse.ReversedVideoClip):
+      # BrightenedVideoClip < ReversedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].brighten(amount).reverse()
+    elif isinstance(clip, vfx.speed.SpedVideoClip):
+      # BrightenedVideoClip < SpedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].brighten(amount).speed(clip._scale)
+    elif isinstance(clip, vfx.subclip.SubVideoClip):
+      # BrightenedVideoClip < SubVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].brighten(amount).subclip(clip._n1, clip._n2)
+    elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
+      # BrightenedVideoClip < SlideTransitionVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      a = clip._source[0].brighten(amount)
+      b = clip._source[1].brighten(amount)
+      return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, f = clip._f, transitionOnly = True)
+    elif isinstance(clip, vfx.composite.CompositeVideoClip):
+      # BrightenedVideoClip < CompositeVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      bg = clip._source[0]
+      fg = clip._source[1]
+      return bg.brighten(amount).composite(fg.brighten(amount), x1 = clip._x1, y1 = clip._y1)
+    elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
+      # BrightenedVideoClip < ConcatenatedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return (clip._source[0].brighten(amount)).concat([s.brighten(amount) for s in clip._source[1:]])
+
   # Source: A single VideoClip
   source = (clip,)
 

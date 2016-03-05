@@ -47,6 +47,58 @@ def gaussianBlur(clip, size = None, width = None, height = None, sigmaX = 0, sig
   if not isinstance(width, int) or not isinstance(height, int) or width < 1 or height < 1 or width % 2 == 0 or height % 2 == 0:
     raise ValueError("gaussian blur amounts must be odd integers greater than or equal to 1")
 
+  # Push
+  from ..clips import transformations
+  if "CanonicalOrder" in transformations:
+    from reflect.core import vfx
+    blurSize = (width, height)
+    sigma = (sigmaX, sigmaY)
+    if isinstance(clip, vfx.crop.CroppedVideoClip):
+      # GaussianBlurredVideoClip > CroppedVideoClip
+      pass
+    elif isinstance(clip, vfx.resize.ResizedVideoClip):
+      # GaussianBlurredVideoClip > ResizedVideoClip_↓
+      # GaussianBlurredVideoClip | ResizedVideoClip_↑
+      pass
+    elif isinstance(clip, vfx.brighten.BrightenedVideoClip):
+      # GaussianBlurredVideoClip > BrightenedVideoClip
+      pass
+    elif isinstance(clip, vfx.greyscale.GreyscaleVideoClip):
+      # GaussianBlurredVideoClip > GreyscaleVideoClip
+      pass
+    elif isinstance(clip, vfx.blur.BlurredVideoClip):
+      # GaussianBlurredVideoClip | BlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.gaussianBlur.GaussianBlurredVideoClip):
+      # GaussianBlurredVideoClip | GaussianBlurredVideoClip
+      pass
+    elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
+      # GaussianBlurredVideoClip < ChangedRateVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].gaussianBlur(blurSize, sigma).rate(clip.fps)
+    elif isinstance(clip, vfx.reverse.ReversedVideoClip):
+      # GaussianBlurredVideoClip < ReversedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].gaussianBlur(blurSize, sigma).reverse()
+    elif isinstance(clip, vfx.speed.SpedVideoClip):
+      # GaussianBlurredVideoClip < SpedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].gaussianBlur(blurSize, sigma).speed(clip._scale)
+    elif isinstance(clip, vfx.subclip.SubVideoClip):
+      # GaussianBlurredVideoClip < SubVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return clip._source[0].gaussianBlur(blurSize, sigma).subclip(clip._n1, clip._n2)
+    elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
+      # GaussianBlurredVideoClip | SlideTransitionVideoClip
+      pass
+    elif isinstance(clip, vfx.composite.CompositeVideoClip):
+      # GaussianBlurredVideoClip | CompositeVideoClip
+      pass
+    elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
+      # GaussianBlurredVideoClip < ConcatenatedVideoClip
+      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      return (clip._source[0].gaussianBlur(blurSize, sigma)).concat([s.gaussianBlur(blurSize, sigma) for s in clip._source[1:]])
+
   # Source: A single VideoClip to be gaussian blurred
   source = (clip,)
 
