@@ -169,6 +169,6 @@ def interpretSubclipParameters(n1, n2, frameCount):
   if n2 < 0:
     n2 += frameCount
   if n1 > n2 or n1 < 0 or n1 >= frameCount or n2 < 1 or n2 > frameCount:
-    raise ValueError("invalid subclip parameters: n1 = {}, n2 = {}, frameCount = {}".format(n1, n2, frameCount))
+    raise ValueError("invalid subclip parameters: n1 = {}, n2 = {}, clip.frameCount = {}".format(n1, n2, clip.frameCount))
 
   return (n1, n2)
