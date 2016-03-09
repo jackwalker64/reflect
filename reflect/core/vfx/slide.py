@@ -99,8 +99,7 @@ class SlideTransitionVideoClip(VideoClip):
 
   @memoizeHash
   def __hash__(self):
-    import inspect
-    return hash((super().__hash__(), self._origin, self._frameCount, inspect.getsource(self._f)))
+    return hash((super().__hash__(), self._origin, self._frameCount, self._fValues))
 
 
 
