@@ -86,7 +86,7 @@ class SlideTransitionVideoClip(VideoClip):
 
 
   def __init__(self, source, metadata, origin, frameCount, f):
-    super().__init__(source, metadata)
+    super().__init__(source, metadata, isIndirection = True)
 
     self._origin = origin
     self._frameCount = frameCount
@@ -99,7 +99,7 @@ class SlideTransitionVideoClip(VideoClip):
 
   @memoizeHash
   def __hash__(self):
-    return hash((super().__hash__(), self._origin, self._frameCount, self._fValues))
+    return hash((super().__hash__(), self._origin, self._frameCount, tuple(self._fValues)))
 
 
 
