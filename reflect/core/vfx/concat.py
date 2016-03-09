@@ -112,6 +112,7 @@ class ConcatenatedVideoClip(VideoClip):
   def _framegen(self, n):
     image = None
 
+    print(self.sourceStartFrames, n)
     clipIndex = bisect_left(self.sourceStartFrames, n + 1)
     if clipIndex == 0:
       offset = 0

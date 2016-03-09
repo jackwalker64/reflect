@@ -64,7 +64,7 @@ def brighten(clip, amount):
       return clip._source[0].brighten(amount).blur(clip._blurSize)
     elif isinstance(clip, vfx.gaussianBlur.GaussianBlurredVideoClip):
       # BrightenedVideoClip < GaussianBlurredVideoClip
-      return clip._source[0].brighten(amount).gaussianBlur(size = clip._blurSize, sigmaX = clip._sigma[0], sigmaY = clip.sigma[1])
+      return clip._source[0].brighten(amount).gaussianBlur(size = clip._blurSize, sigma = clip._sigma)
     elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
       # BrightenedVideoClip < ChangedRateVideoClip
       if clip._childCount == 0: clip._graph.removeLeaf(clip)

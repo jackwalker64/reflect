@@ -48,7 +48,7 @@ def greyscale(clip):
       return clip._source[0].greyscale().blur(clip._blurSize)
     elif isinstance(clip, vfx.gaussianBlur.GaussianBlurredVideoClip):
       # GreyscaleVideoClip < GaussianBlurredVideoClip
-      return clip._source[0].greyscale().gaussianBlur(size = clip._blurSize, sigmaX = clip._sigma[0], sigmaY = clip.sigma[1])
+      return clip._source[0].greyscale().gaussianBlur(size = clip._blurSize, sigma = clip._sigma)
     elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
       # GreyscaleVideoClip < ChangedRateVideoClip
       if clip._childCount == 0: clip._graph.removeLeaf(clip)

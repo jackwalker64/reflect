@@ -88,7 +88,7 @@ def resize(clip, size = None, width = None, height = None, interpolation = cv2.I
       elif isinstance(clip, vfx.gaussianBlur.GaussianBlurredVideoClip):
         # ResizedVideoClip_↓ < GaussianBlurredVideoClip
         if clip._childCount == 0: clip._graph.removeLeaf(clip)
-        return clip._source[0].resize(size, interpolation = interpolation).gaussianBlur(size = clip._blurSize, sigmaX = clip._sigma[0], sigmaY = clip.sigma[1])
+        return clip._source[0].resize(size, interpolation = interpolation).gaussianBlur(size = clip._blurSize, sigma = clip._sigma)
       elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
         # ResizedVideoClip_↓ < ChangedRateVideoClip
         if clip._childCount == 0: clip._graph.removeLeaf(clip)
