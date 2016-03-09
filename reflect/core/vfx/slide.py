@@ -70,7 +70,7 @@ def slide(clip, successor, origin, duration = None, frameCount = None, f = None,
 
 @clipMethod
 def slideTransition(clip, successor, origin, frameCount, f):
-  source = (clip, successor)
+  source = (clip.subclip(clip.frameCount - frameCount), successor.subclip(0, frameCount))
   metadata = copy.copy(clip._metadata)
   metadata.frameCount = frameCount
   return SlideTransitionVideoClip(source, metadata, origin, frameCount, f)
@@ -129,12 +129,11 @@ class SlideTransitionVideoClip(VideoClip):
     clip = self._source[0]
     successor = self._source[1]
     origin = self._origin
-    frameCount = self._frameCount
     fValues = self._fValues
 
     progress = fValues[n]
 
-    image = clip.frame(clip.frameCount - frameCount + n)
+    image = clip.frame(n)
 
     blittedImage = numpy.copy(image)
     if origin == "top":
