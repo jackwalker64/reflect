@@ -73,19 +73,19 @@ def gaussianBlur(clip, size = None, width = None, height = None, sigma = (0, 0))
       pass
     elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
       # GaussianBlurredVideoClip < ChangedRateVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].gaussianBlur(blurSize, sigma = sigma).rate(clip.fps)
     elif isinstance(clip, vfx.reverse.ReversedVideoClip):
       # GaussianBlurredVideoClip < ReversedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].gaussianBlur(blurSize, sigma = sigma).reverse()
     elif isinstance(clip, vfx.speed.SpedVideoClip):
       # GaussianBlurredVideoClip < SpedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].gaussianBlur(blurSize, sigma = sigma).speed(clip._scale)
     elif isinstance(clip, vfx.subclip.SubVideoClip):
       # GaussianBlurredVideoClip < SubVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].gaussianBlur(blurSize, sigma = sigma).subclip(clip._n1, clip._n2)
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # GaussianBlurredVideoClip | SlideTransitionVideoClip
@@ -95,7 +95,7 @@ def gaussianBlur(clip, size = None, width = None, height = None, sigma = (0, 0))
       pass
     elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
       # GaussianBlurredVideoClip < ConcatenatedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return (clip._source[0].gaussianBlur(blurSize, sigma = sigma)).concat([s.gaussianBlur(blurSize, sigma = sigma) for s in clip._source[1:]])
 
   # Source: A single VideoClip to be gaussian blurred

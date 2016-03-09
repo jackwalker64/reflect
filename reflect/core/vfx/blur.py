@@ -72,19 +72,19 @@ def blur(clip, size = None, width = None, height = None):
       pass
     elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
       # BlurredVideoClip < ChangedRateVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].blur(blurSize).rate(clip.fps)
     elif isinstance(clip, vfx.reverse.ReversedVideoClip):
       # BlurredVideoClip < ReversedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].blur(blurSize).reverse()
     elif isinstance(clip, vfx.speed.SpedVideoClip):
       # BlurredVideoClip < SpedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].blur(blurSize).speed(clip._scale)
     elif isinstance(clip, vfx.subclip.SubVideoClip):
       # BlurredVideoClip < SubVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].blur(blurSize).subclip(clip._n1, clip._n2)
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # BlurredVideoClip | SlideTransitionVideoClip
@@ -94,7 +94,7 @@ def blur(clip, size = None, width = None, height = None):
       pass
     elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
       # BlurredVideoClip < ConcatenatedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return (clip._source[0].blur(blurSize)).concat([s.blur(blurSize) for s in clip._source[1:]])
 
   # Source: A single VideoClip to be blurred

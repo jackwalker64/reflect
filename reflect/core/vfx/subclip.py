@@ -75,7 +75,7 @@ def subclip(clip, n1 = None, n2 = None, frameCount = None, t1 = None, t2 = None,
     elif isinstance(clip, vfx.resize.ResizedVideoClip):
       if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
         # SubVideoClip < ResizedVideoClip_↑
-        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
         return clip._source[0].subclip(n1, n2).resize(clip.size, interpolation = clip._interpolation)
       else:
         # SubVideoClip > ResizedVideoClip_↓
@@ -103,24 +103,24 @@ def subclip(clip, n1 = None, n2 = None, frameCount = None, t1 = None, t2 = None,
       pass
     elif isinstance(clip, vfx.subclip.SubVideoClip):
       # SubVideoClip = SubVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].subclip(clip._n1 + n1, clip._n1 + n2)
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # SubVideoClip < SlideTransitionVideoClip
-      # if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      # if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       # a = clip._source[0].subclip(n1, n2)
       # b = clip._source[1].subclip(n1, n2)
       # return a.slide(b, origin = clip._origin, frameCount = int(clip._frameCount / scale), f = clip._f, transitionOnly = True)
       raise NotImplementedError()
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # SubVideoClip < CompositeVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       bg = clip._source[0].subclip(n1, n2)
       fg = clip._source[1].subclip(n1, n2)
       return bg.composite(fg, x1 = clip._x1, y1 = clip._y1)
     elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
       # SubVideoClip < ConcatenatedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       from bisect import bisect_left
       firstClipIndex = bisect_left(clip.sourceStartFrames, n1 + 1)
       secondClipIndex = bisect_left(clip.sourceStartFrames, n2)

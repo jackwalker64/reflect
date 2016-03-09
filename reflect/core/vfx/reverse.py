@@ -29,7 +29,7 @@ def reverse(clip):
     elif isinstance(clip, vfx.resize.ResizedVideoClip):
       if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
         # ReversedVideoClip < ResizedVideoClip_↑
-        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
         return clip._source[0].reverse().resize(clip.size, interpolation = clip._interpolation)
       else:
         # ReversedVideoClip > ResizedVideoClip_↓
@@ -51,32 +51,32 @@ def reverse(clip):
       pass
     elif isinstance(clip, vfx.reverse.ReversedVideoClip):
       # ReversedVideoClip = ReversedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0]
     elif isinstance(clip, vfx.speed.SpedVideoClip):
       # ReversedVideoClip < SpedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].reverse().speed(clip._scale)
     elif isinstance(clip, vfx.subclip.SubVideoClip):
       # ReversedVideoClip < SubVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].reverse().subclip(clip.frameCount - clip._n2, clip.frameCount - clip._n1)
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # ReversedVideoClip < SlideTransitionVideoClip
-      # if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      # if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       # a = clip._source[0].reverse()
       # b = clip._source[1].reverse()
       # return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, f = clip._f, transitionOnly = True)
       raise NotImplementedError()
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # ReversedVideoClip < CompositeVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       bg = clip._source[0]
       fg = clip._source[1]
       return bg.reverse().composite(fg.reverse(), x1 = clip._x1, y1 = clip._y1)
     elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
       # ReversedVideoClip < ConcatenatedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       n = len(clip._source)
       return (clip._source[n-1].reverse()).concat([s.reverse() for s in reversed(clip._source[0:n-1])])
 

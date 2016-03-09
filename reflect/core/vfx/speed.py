@@ -51,7 +51,7 @@ def speed(clip, scale = None, duration = None, frameCount = None):
     elif isinstance(clip, vfx.resize.ResizedVideoClip):
       if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
         # SpedVideoClip < ResizedVideoClip_↑
-        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
         return clip._source[0].speed(scale).resize(clip.size, interpolation = clip._interpolation)
       else:
         # SpedVideoClip > ResizedVideoClip_↓
@@ -76,27 +76,27 @@ def speed(clip, scale = None, duration = None, frameCount = None):
       pass
     elif isinstance(clip, vfx.speed.SpedVideoClip):
       # SpedVideoClip = SpedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].speed(scale)
     elif isinstance(clip, vfx.subclip.SubVideoClip):
       # SpedVideoClip < SubVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].speed(scale).subclip(int(clip._n1 / scale), int(clip._n2 / scale))
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # SpedVideoClip < SlideTransitionVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       a = clip._source[0].speed(scale)
       b = clip._source[1].speed(scale)
       return a.slide(b, origin = clip._origin, frameCount = int(clip._frameCount / scale), f = clip._f, transitionOnly = True)
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # SpedVideoClip < CompositeVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       bg = clip._source[0].speed(scale)
       fg = clip._source[1].speed(scale)
       return bg.composite(fg, x1 = clip._x1, y1 = clip._y1)
     elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
       # SpedVideoClip < ConcatenatedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return (clip._source[0].speed(scale)).concat([s.speed(scale) for s in clip._source[1:]])
 
   # Source: A single VideoClip

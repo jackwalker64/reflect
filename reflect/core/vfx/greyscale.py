@@ -31,7 +31,7 @@ def greyscale(clip):
     elif isinstance(clip, vfx.resize.ResizedVideoClip):
       if clip.width * clip.height >= clip._source[0].width * clip._source[0].height:
         # GreyscaleVideoClip < ResizedVideoClip_↑
-        if clip._childCount == 0: clip._graph.removeLeaf(clip)
+        if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
         return clip._source[0].greyscale().resize(clip.size, interpolation = clip._interpolation)
       else:
         # GreyscaleVideoClip > ResizedVideoClip_↓
@@ -41,7 +41,7 @@ def greyscale(clip):
       pass
     elif isinstance(clip, vfx.greyscale.GreyscaleVideoClip):
       # GreyscaleVideoClip = GreyscaleVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0]
     elif isinstance(clip, vfx.blur.BlurredVideoClip):
       # GreyscaleVideoClip < BlurredVideoClip
@@ -51,35 +51,35 @@ def greyscale(clip):
       return clip._source[0].greyscale().gaussianBlur(size = clip._blurSize, sigma = clip._sigma)
     elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
       # GreyscaleVideoClip < ChangedRateVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].greyscale().rate(clip.fps)
     elif isinstance(clip, vfx.reverse.ReversedVideoClip):
       # GreyscaleVideoClip < ReversedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].greyscale().reverse()
     elif isinstance(clip, vfx.speed.SpedVideoClip):
       # GreyscaleVideoClip < SpedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].greyscale().speed(clip._scale)
     elif isinstance(clip, vfx.subclip.SubVideoClip):
       # GreyscaleVideoClip < SubVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].greyscale().subclip(clip._n1, clip._n2)
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # GreyscaleVideoClip < SlideTransitionVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       a = clip._source[0].greyscale()
       b = clip._source[1].greyscale()
       return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, f = clip._f, transitionOnly = True)
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # GreyscaleVideoClip < CompositeVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       bg = clip._source[0]
       fg = clip._source[1]
       return bg.greyscale().composite(fg.greyscale(), x1 = clip._x1, y1 = clip._y1)
     elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
       # GreyscaleVideoClip < ConcatenatedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return (clip._source[0].greyscale()).concat([s.greyscale() for s in clip._source[1:]])
 
   # Source: A single VideoClip

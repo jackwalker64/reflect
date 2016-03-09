@@ -88,21 +88,21 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
     from reflect.core import vfx
     if isinstance(clip, vfx.crop.CroppedVideoClip):
       # CroppedVideoClip = CroppedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].crop(clip._x1 + x1, clip._y1 + y1, clip._x1 + x2, clip._y1 + y2)
     elif isinstance(clip, vfx.resize.ResizedVideoClip):
       # CroppedVideoClip < ResizedVideoClip_↓
       # CroppedVideoClip < ResizedVideoClip_↑
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       (wScale, hScale) = (clip.width / clip._source[0].width, clip.height / clip._source[0].height)
       return clip._source[0].crop(x1/wScale, y1/hScale, x2/wScale, y2/hScale).resize(size = (x2 - x1, y2 - y1), interpolation = clip._interpolation)
     elif isinstance(clip, vfx.brighten.BrightenedVideoClip):
       # CroppedVideoClip < BrightenedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].crop(x1, y1, x2, y2).brighten(clip._amount)
     elif isinstance(clip, vfx.greyscale.GreyscaleVideoClip):
       # CroppedVideoClip < GreyscaleVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].crop(x1, y1, x2, y2).greyscale()
     elif isinstance(clip, vfx.blur.BlurredVideoClip):
       # CroppedVideoClip | BlurredVideoClip
@@ -112,26 +112,26 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
       pass
     elif isinstance(clip, vfx.rate.ChangedRateVideoClip):
       # CroppedVideoClip < ChangedRateVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].crop(x1, y1, x2, y2).rate(clip.fps)
     elif isinstance(clip, vfx.reverse.ReversedVideoClip):
       # CroppedVideoClip < ReversedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].crop(x1, y1, x2, y2).reverse()
     elif isinstance(clip, vfx.speed.SpedVideoClip):
       # CroppedVideoClip < SpedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].crop(x1, y1, x2, y2).speed(clip._scale)
     elif isinstance(clip, vfx.subclip.SubVideoClip):
       # CroppedVideoClip < SubVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return clip._source[0].crop(x1, y1, x2, y2).subclip(clip._n1, clip._n2)
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # CroppedVideoClip < SlideTransitionVideoClip
       raise NotImplementedError()
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # CroppedVideoClip < CompositeVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       bg = clip._source[0]
       fg = clip._source[1]
       (cx1, cy1, cx2, cy2) = (clip._x1, clip._y1, clip._x1 + fg.width, clip._y1 + fg.height)
@@ -162,7 +162,7 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
         )
     elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
       # CroppedVideoClip < ConcatenatedVideoClip
-      if clip._childCount == 0: clip._graph.removeLeaf(clip)
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       return (clip._source[0].crop(x1, y1, x2, y2)).concat([s.crop(x1, y1, x2, y2) for s in clip._source[1:]])
 
   # Source: A single VideoClip to be cropped
