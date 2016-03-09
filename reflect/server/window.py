@@ -542,7 +542,7 @@ class Window(object):
 
 
   def _redrawProgress(self, n, leaf):
-    font = pygame.font.SysFont("Consolas", 12)
+    font = pygame.font.SysFont("Consolas,UbuntuMono", 12)
     text1 = font.render("{} / {}".format(frameToTimecode(n, leaf.fps), frameToTimecode(leaf.frameCount, leaf.fps)), True, (255, 255, 255))
     numberLength = math.floor(math.log10(leaf.frameCount)) + 1
     text2 = font.render("{0: >{width}} / {1}".format(n, leaf.frameCount, width = numberLength), True, (255, 255, 255))
