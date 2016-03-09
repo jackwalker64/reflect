@@ -122,7 +122,7 @@ class Window(object):
         for button, state in self._heldMouseButtons.items():
           initialX, initialY = state["initialPosition"]
           duration = state["duration"]
-          if button == 1 and duration == 0 and self._displayPanel.collidepoint(initialX, initialY):
+          if button == 1 and duration == 0 and self._displayPanel.collidepoint(initialX, initialY) and not self.userScriptIsRunning:
             self._showText("")
             ScriptRunner(self._filepath, self).start()
       else:
