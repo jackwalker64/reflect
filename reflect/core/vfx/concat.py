@@ -84,6 +84,7 @@ class ConcatenatedVideoClip(VideoClip):
     super().__init__(source, metadata, isIndirection = True, isConstant = len(source) == 1 and source[0]._isConstant)
 
     self._sourceStartFrames = None # Initialised only when it's needed
+    self._mostRecentSourceIndex = 0 # Remembers the previously accessed source clip
 
 
 
@@ -112,14 +113,31 @@ class ConcatenatedVideoClip(VideoClip):
   def _framegen(self, n):
     image = None
 
-    print(self.sourceStartFrames, n)
-    clipIndex = bisect_left(self.sourceStartFrames, n + 1)
+    if self._mostRecentSourceIndex == 0 and n < self.sourceStartFrames[0]:
+      # We are still accessing the most recent clip
+      clipIndex = self._mostRecentSourceIndex
+    elif n >= self.sourceStartFrames[self._mostRecentSourceIndex - 1] and n < self.sourceStartFrames[self._mostRecentSourceIndex]:
+      # We are still accessing the most recent clip
+      clipIndex = self._mostRecentSourceIndex
+    elif n >= self.sourceStartFrames[self._mostRecentSourceIndex] and n < self.sourceStartFrames[self._mostRecentSourceIndex + 1]:
+      # We are now accessing the clip that comes after the most recently accessed clip
+      clipIndex = self._mostRecentSourceIndex + 1
+    elif n == 0:
+      # We have returned to the start of the clip
+      clipIndex = 0
+    else:
+      # Otherwise do a binary search
+      clipIndex = bisect_left(self.sourceStartFrames, n + 1)
+
+    self._mostRecentSourceIndex = clipIndex
+
     if clipIndex == 0:
       offset = 0
     elif clipIndex < len(self._source):
       offset = self.sourceStartFrames[clipIndex - 1]
     else:
       raise IndexError("received a request for the frame at index {}, but this sequence of video clips contains only {} frames".format(n, self.frameCount))
+
     clip = self._source[clipIndex]
     image = clip.frame(n - offset)
 
