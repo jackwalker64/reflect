@@ -96,6 +96,8 @@ class ConsoleHandler(threading.Thread):
     try:
       while True:
         key = reflect.util.getch()
+        if isinstance(key, str):
+          key = bytearray(key, "utf8")
         if key == b"\x03" or key == b"q":
           raise KeyboardInterrupt
         elif key == b" ":
