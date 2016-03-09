@@ -4,6 +4,9 @@
 
 import reflect
 import os
+import random
+
+random.seed(42)
 
 def letterbox(x, width, height):
   b = x.resize(height = height).gaussianBlur(31)
@@ -35,6 +38,6 @@ for filename in os.listdir(directoryPath):
   if v is None:
     v = x
   else:
-    v = v.slide(x, origin = "bottom", frameCount = 20, f = reflect.core.easing.inOutQuad)
+    v = v.slide(x, origin = random.choice(["top", "bottom", "left", "right"]), frameCount = 20, f = reflect.core.easing.inOutQuad)
 
 
