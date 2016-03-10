@@ -50,14 +50,14 @@ def concat(clip, *others, autoResize = True):
       if isinstance(other, ConcatenatedVideoClip):
         # Grab the sources of the input to avoid stacking ConcatenatedVideoClips
         flattenedOthers.extend(other._source)
-        if other._childCount == 0:
+        if other._childCount == 0 and other._graph.isLeaf(other):
           other._graph.removeLeaf(other)
       else:
         flattenedOthers.append(other)
     if isinstance(clip, ConcatenatedVideoClip):
       # Grab the sources of the input to avoid stacking ConcatenatedVideoClips
       source = clip._source + tuple(flattenedOthers)
-      if clip._childCount == 0:
+      if clip._childCount == 0 and other._graph.isLeaf(other):
         clip._graph.removeLeaf(clip)
     else:
       source = (clip,) + tuple(flattenedOthers)
