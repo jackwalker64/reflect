@@ -113,11 +113,8 @@ def subclip(clip, n1 = None, n2 = None, frameCount = None, t1 = None, t2 = None,
       # return a.slide(b, origin = clip._origin, frameCount = int(clip._frameCount / scale), fValues = clip._fValues, transitionOnly = True)
       raise NotImplementedError()
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
-      # SubVideoClip < CompositeVideoClip
-      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
-      bg = clip._source[0].subclip(n1, n2)
-      fg = clip._source[1].subclip(n1, n2)
-      return bg.composite(fg, x1 = clip._x1, y1 = clip._y1)
+      # SubVideoClip | CompositeVideoClip
+      pass
     elif isinstance(clip, vfx.concat.ConcatenatedVideoClip):
       # SubVideoClip < ConcatenatedVideoClip
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
