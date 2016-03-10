@@ -110,11 +110,10 @@ def subclip(clip, n1 = None, n2 = None, frameCount = None, t1 = None, t2 = None,
       return clip._source[0].subclip(clip._n1 + n1, clip._n1 + n2)
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # SubVideoClip < SlideTransitionVideoClip
-      # if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
-      # a = clip._source[0].subclip(n1, n2)
-      # b = clip._source[1].subclip(n1, n2)
-      # return a.slide(b, origin = clip._origin, frameCount = int(clip._frameCount / scale), fValues = clip._fValues, transitionOnly = True)
-      raise NotImplementedError()
+      if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
+      a = clip._source[0].subclip(n1, n2)
+      b = clip._source[1].subclip(n1, n2)
+      return a.slide(b, origin = clip._origin, frameCount = n2 - n1, fValues = clip._fValues[n1:n2], transitionOnly = True)
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # SubVideoClip | CompositeVideoClip
       pass
