@@ -26,6 +26,7 @@ def pillarbox(x, width, height):
 
 directoryPath = "D:\\Documents\\University\\Year 3\\_Project\\Media\\sources\\images\\cambridge"
 v = None
+i, limit = 0, 3
 for filename in os.listdir(directoryPath):
   filepath = os.path.join(directoryPath, filename)
 
@@ -39,5 +40,9 @@ for filename in os.listdir(directoryPath):
     v = x
   else:
     v = v.slide(x, origin = random.choice(["top", "bottom", "left", "right"]), frameCount = 20, f = reflect.core.easing.inOutQuad)
+
+  i += 1
+  if i >= limit:
+    break
 
 
