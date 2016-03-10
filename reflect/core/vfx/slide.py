@@ -8,12 +8,13 @@ import numpy
 
 
 @clipMethod
-def slide(clip, successor, origin, duration = None, frameCount = None, f = None, transitionOnly = False):
-  """slide(clip, successor, origin, duration = None, frameCount = None, f = None, transitionOnly = False):
+def slide(clip, successor, origin, duration = None, frameCount = None, f = None, fValues = None, transitionOnly = False):
+  """slide(clip, successor, origin, duration = None, frameCount = None, f = None, fValues = None, transitionOnly = False):
 
   Returns the concatenation of `clip` and `successor`, but with a "sliding in" transition defined
   by the `origin` ("top" | "bottom" | "left" | "right"), the specified `duration`/`frameCount`,
-  and optionally an easing function f : int × int → float.
+  and optionally an easing function f : int × float × float × int → float (or a list `fValues` of an
+  easing function's output).
 
   The `transitionOnly` parameter can be set to True to only return the sliding part of the resulting clip.
 
@@ -39,19 +40,24 @@ def slide(clip, successor, origin, duration = None, frameCount = None, f = None,
     if frameCount is not None:
       raise TypeError("expected exactly one of duration and frameCount, but received both")
     frameCount = int(duration * clip.fps)
-  if f is None:
-    f = linear # Default to a linear transition
+  if f is None and fValues is None:
+    # Default to a linear transition
+    fValues = [linear(x, 0.0, 1.0, frameCount) for x in range(0, frameCount)]
+  elif f is not None:
+    if fValues is not None:
+      raise TypeError("expected exactly one of f and fValues, but received both")
+    fValues = [f(x, 0.0, 1.0, frameCount) for x in range(0, frameCount)]
 
   if frameCount > clip.frameCount:
-    raise ValueError("expected the transition duration to be at most the duration of the input clip, but instead got frameCount = {}, clip.frameCount = {}".format(frameCount, successor.frameCount))
+    raise ValueError("expected the transition duration to be at most the duration of the input clip, but instead got frameCount = {}, clip.frameCount = {}".format(frameCount, clip.frameCount))
   elif frameCount > successor.frameCount:
-    raise ValueError("expected the transition duration to be at most the duration of the input clip, but instead got frameCount = {}, successor.frameCount = {}".format(frameCount, clip.frameCount))
+    raise ValueError("expected the transition duration to be at most the duration of the input clip, but instead got frameCount = {}, successor.frameCount = {}".format(frameCount, successor.frameCount))
 
   if frameCount == 0:
     return clip.concat(successor)
 
   # Generate the transition
-  transition = slideTransition(clip, successor, origin, frameCount, f)
+  transition = slideTransition(clip, successor, origin, frameCount, fValues)
 
   if transitionOnly:
     return transition
@@ -69,31 +75,83 @@ def slide(clip, successor, origin, duration = None, frameCount = None, f = None,
 
 
 @clipMethod
-def slideTransition(clip, successor, origin, frameCount, f):
+def slideTransition(clip, successor, origin, frameCount, fValues):
   source = (clip.subclip(clip.frameCount - frameCount), successor.subclip(0, frameCount))
+
+  # Push
+  from ..clips import transformations
+  if "CanonicalOrder" in transformations:
+    from reflect.core import vfx
+
+    if isinstance(source[0], vfx.concat.ConcatenatedVideoClip) or isinstance(source[1], vfx.concat.ConcatenatedVideoClip):
+      # SlideTransitionVideoClip < ConcatenatedVideoClip
+      if isinstance(source[0], vfx.concat.ConcatenatedVideoClip):
+        if source[0]._childCount == 0 and source[0]._graph.isLeaf(source[0]): source[0]._graph.removeLeaf(source[0])
+        prevSources = list(source[0]._source)
+        prevStartFrames = source[0].sourceStartFrames
+      else:
+        prevSources = [source[0]]
+        prevStartFrames = [source[0].frameCount]
+      if isinstance(source[1], vfx.concat.ConcatenatedVideoClip):
+        if source[1]._childCount == 0 and source[1]._graph.isLeaf(source[1]): source[1]._graph.removeLeaf(source[1])
+        nextSources = list(source[1]._source)
+        nextStartFrames = source[1].sourceStartFrames
+      else:
+        nextSources = [source[1]]
+        nextStartFrames = [source[1].frameCount]
+
+      i = 0 # prev index
+      j = 0 # next index
+      n = 0 # Current frame being considered
+      finalPartsToConcat = []
+      while i < len(prevStartFrames) and j < len(nextStartFrames):
+        if prevStartFrames[i] == nextStartFrames[j]:
+          # No subclipping is necessary; just construct the slide node
+          N = prevStartFrames[i]
+          part = prevSources[i].slide(nextSources[j], origin = origin, frameCount = N - n, fValues = fValues[n:N])
+          finalPartsToConcat.append(part)
+          n = N
+          i += 1
+          j += 1
+        elif prevStartFrames[i] < nextStartFrames[j]:
+          # next needs to be split
+          N = prevStartFrames[i]
+          part = prevSources[i].slide(nextSources[j].subclip(0, N - n), origin = origin, frameCount = N - n, fValues = fValues[n:N])
+          finalPartsToConcat.append(part)
+          nextSources[j] = nextSources[j].subclip(N - n)
+          n = N
+          i += 1
+        else:
+          # prev needs to be split
+          N = nextStartFrames[i]
+          part = prevSources[i].subclip(0, N - n).slide(nextSources[j], origin = origin, frameCount = N - n, fValues = fValues[n:N])
+          finalPartsToConcat.append(part)
+          prevSources[i] = prevSources[i].subclip(N - n)
+          n = N
+          j += 1
+
+      return finalPartsToConcat[0].concat(finalPartsToConcat[1:])
+
   metadata = copy.copy(clip._metadata)
   metadata.frameCount = frameCount
-  return SlideTransitionVideoClip(source, metadata, origin, frameCount, f)
+  return SlideTransitionVideoClip(source, metadata, origin, frameCount, fValues)
 
 
 
 class SlideTransitionVideoClip(VideoClip):
-  """SlideTransitionVideoClip(source, metadata, origin, frameCount, f)
+  """SlideTransitionVideoClip(source, metadata, origin, frameCount, fValues)
 
   Represents the transition part of the result of clip.slide(successor, …).
   """
 
 
 
-  def __init__(self, source, metadata, origin, frameCount, f):
+  def __init__(self, source, metadata, origin, frameCount, fValues):
     super().__init__(source, metadata, isIndirection = True)
 
     self._origin = origin
     self._frameCount = frameCount
-    self._f = f
-
-    # Compute the codomain of f
-    self._fValues = [f(x, 0.0, 1.0, frameCount) for x in range(0, frameCount)]
+    self._fValues = fValues
 
 
 

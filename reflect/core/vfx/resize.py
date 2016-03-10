@@ -110,7 +110,7 @@ def resize(clip, size = None, width = None, height = None, interpolation = cv2.I
         if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
         a = clip._source[0].resize(size, interpolation = interpolation)
         b = clip._source[1].resize(size, interpolation = interpolation)
-        return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, f = clip._f, transitionOnly = True)
+        return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, fValues = clip._fValues, transitionOnly = True)
       elif isinstance(clip, vfx.composite.CompositeVideoClip):
         # ResizedVideoClip_↓ < CompositeVideoClip
         if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)

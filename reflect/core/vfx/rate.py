@@ -79,7 +79,7 @@ def rate(clip, fps = None, delay = None):
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       a = clip._source[0].rate(fps)
       b = clip._source[1].rate(fps)
-      return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, f = clip._f, transitionOnly = True)
+      return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, fValues = clip._fValues, transitionOnly = True)
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # ChangedRateVideoClip < CompositeVideoClip
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)

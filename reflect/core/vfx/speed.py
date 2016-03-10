@@ -87,7 +87,7 @@ def speed(clip, scale = None, duration = None, frameCount = None):
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       a = clip._source[0].speed(scale)
       b = clip._source[1].speed(scale)
-      return a.slide(b, origin = clip._origin, frameCount = int(clip._frameCount / scale), f = clip._f, transitionOnly = True)
+      return a.slide(b, origin = clip._origin, frameCount = int(clip._frameCount / scale), fValues = clip._fValues, transitionOnly = True)
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # SpedVideoClip < CompositeVideoClip
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)

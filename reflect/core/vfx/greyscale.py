@@ -70,7 +70,7 @@ def greyscale(clip):
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
       a = clip._source[0].greyscale()
       b = clip._source[1].greyscale()
-      return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, f = clip._f, transitionOnly = True)
+      return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, fValues = clip._fValues, transitionOnly = True)
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # GreyscaleVideoClip < CompositeVideoClip
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
