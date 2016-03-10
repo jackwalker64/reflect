@@ -123,14 +123,28 @@ def compositePart(clip, fg, n1, n2, x1, y1):
   from ..clips import transformations
   if "CanonicalOrder" in transformations:
     from reflect.core import vfx
-    if isinstance(middleBg, vfx.concat.ConcatenatedVideoClip):
+
+    if isinstance(middleBg, vfx.concat.ConcatenatedVideoClip) or isinstance(fg, vfx.concat.ConcatenatedVideoClip):
       # CompositeVideoClip < ConcatenatedVideoClip
-      if middleBg._childCount == 0: middleBg._graph.removeLeaf(middleBg)
-      sourceStartFrames = middleBg.sourceStartFrames
+      if middleBg._childCount == 0 and middleBg._graph.isLeaf(middleBg): middleBg._graph.removeLeaf(middleBg)
+      if isinstance(middleBg, vfx.concat.ConcatenatedVideoClip):
+        middleBgSources = middleBg._source
+        middleBgSourceStartFrames = middleBg.sourceStartFrames
+      else:
+        middleBgSources = (middleBg,)
+        middleBgSourceStartFrames = [middleBg.frameCount]
       parts = []
       offset = 0
-      for index, n in enumerate(sourceStartFrames):
-        parts.append(middleBg._source[index].composite(fg.subclip(offset, n), x1 = x1, y1 = y1))
+      for index, n in enumerate(middleBgSourceStartFrames):
+        fgPart = fg.subclip(offset, n)
+        if isinstance(fgPart, vfx.concat.ConcatenatedVideoClip):
+          if fgPart._childCount == 0 and fgPart._graph.isLeaf(fgPart): fgPart._graph.removeLeaf(fgPart)
+          fgOffset = 0
+          for fgIndex, fgN in enumerate(fgPart.sourceStartFrames):
+            parts.append(middleBgSources[index].subclip(fgOffset, fgN).composite(fgPart._source[fgIndex], x1 = x1, y1 = y1))
+            fgOffset = fgN
+        else:
+          parts.append(middleBgSources[index].composite(fgPart, x1 = x1, y1 = y1))
         offset = n
       return parts[0].concat(parts[1:])
 
