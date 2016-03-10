@@ -190,6 +190,11 @@ class SlideTransitionVideoClip(VideoClip):
 
     progress = fValues[n]
 
+    if progress == 0.0:
+      return clip.frame(n)
+    elif progress == 1.0:
+      return successor.frame(n)
+
     image = clip.frame(n)
 
     blittedImage = numpy.copy(image)

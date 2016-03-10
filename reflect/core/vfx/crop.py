@@ -128,7 +128,13 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
       return clip._source[0].crop(x1, y1, x2, y2).subclip(clip._n1, clip._n2)
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # CroppedVideoClip < SlideTransitionVideoClip
-      raise NotImplementedError()
+      a = clip._source[0].crop(x1, y1, x2, y2)
+      b = clip._source[1].crop(x1, y1, x2, y2)
+      if clip._origin in ("left", "right"):
+        fValues = [max(0, min(x2, clip._fValues[t]*clip.width) - x1)/(x2 - x1) for t in range(len(clip._fValues))]
+      else:
+        fValues = [max(0, min(y2, clip._fValues[t]*clip.height) - y1)/(y2 - y1) for t in range(len(clip._fValues))]
+      return a.slide(b, origin = clip._origin, frameCount = clip._frameCount, fValues = fValues, transitionOnly = True)
     elif isinstance(clip, vfx.composite.CompositeVideoClip):
       # CroppedVideoClip < CompositeVideoClip
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
