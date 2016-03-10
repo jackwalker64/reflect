@@ -65,6 +65,9 @@ def subclip(clip, n1 = None, n2 = None, frameCount = None, t1 = None, t2 = None,
 
   (n1, n2) = interpretSubclipParameters(n1, n2, clip.frameCount)
 
+  if n1 == 0 and n2 == clip.frameCount:
+    return clip
+
   # Push
   from ..clips import transformations
   if "CanonicalOrder" in transformations:
