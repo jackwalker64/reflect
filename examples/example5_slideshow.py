@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# python start.py -d -f "D:\Documents\University\Year 3\_Project\Git\reflect\examples\example5_slideshow.py"
-
 import reflect
 import os
 import random
