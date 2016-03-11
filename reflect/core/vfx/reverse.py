@@ -60,7 +60,7 @@ def reverse(clip):
     elif isinstance(clip, vfx.subclip.SubVideoClip):
       # ReversedVideoClip < SubVideoClip
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
-      return clip._source[0].reverse().subclip(clip.frameCount - clip._n2, clip.frameCount - clip._n1)
+      return clip._source[0].reverse().subclip(clip._source[0].frameCount - clip._n2, clip._source[0].frameCount - clip._n1)
     elif isinstance(clip, vfx.slide.SlideTransitionVideoClip):
       # ReversedVideoClip < SlideTransitionVideoClip
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
