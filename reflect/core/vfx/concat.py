@@ -9,15 +9,11 @@ from bisect import bisect_left
 
 
 @clipMethod
-def concat(clip, *others, autoResize = True):
-  """concat(clip, *others, autoResize = True)
+def concat(clip, *others):
+  """concat(clip, *others)
 
   Returns a VideoClip containing the frames of `clip` immediately followed by the frames in one or
   more other VideoClips (`*others`).
-
-  If autoResize is True, clips in `others` will be scaled to have the same dimensions as `clip`.
-  If autoResize is False, clips in `others` will just be placed at (0, 0) and will retain their
-  original dimensions.
 
   Examples
   --------
@@ -36,11 +32,7 @@ def concat(clip, *others, autoResize = True):
   if len(others) < 1:
     raise TypeError("expected at least two clips to concatenate together")
 
-  if autoResize:
-    others = [(other.resize(size = clip.size) if other.size != clip.size else other) for other in others]
-  else:
-    # TODO: Resize the canvas of each clip to the same dimensions, placing each clip at (0, 0) and making any empty space transparent
-    raise NotImplementedError()
+  others = [(other.resize(size = clip.size) if other.size != clip.size else other) for other in others]
 
   # Sources
   from ..clips import transformations
