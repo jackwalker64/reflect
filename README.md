@@ -17,6 +17,7 @@ Python modules installed:
 Installing on linux
 * Get pip3: `sudo apt-get install python3-pip`
 * Install tkinter: `sudo apt-get install python3-tk`
+* Install graphviz: `sudo apt-get install graphviz`
 * Install pygame:
 
         sudo apt-get build-dep python-pygame
@@ -60,9 +61,8 @@ Installing on linux
         sudo make install
         sudo ldconfig
 
-* Go to the `reflect` directory (containing `setup.py`) and run: `pip3 install -e .`
+* Go to the `reflect` directory (containing `setup.py`) and run: `sudo pip3 install -e .`
 * Run e.g. `python3 start.py -f examples/example5_slideshow.py -V graph.png`
-
 
 
 
