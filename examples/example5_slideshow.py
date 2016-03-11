@@ -24,7 +24,7 @@ def pillarbox(x, width, height):
   c = b.composite(x, y1 = 0, xc = b.width / 2)
   return c
 
-directoryPath = "D:\\Documents\\University\\Year 3\\_Project\\Media\\sources\\images\\cambridge"
+directoryPath = "examples/cambridge"
 v = None
 i, limit = 0, 3
 for filename in os.listdir(directoryPath):
@@ -44,5 +44,3 @@ for filename in os.listdir(directoryPath):
   i += 1
   if i >= limit:
     break
-
-
