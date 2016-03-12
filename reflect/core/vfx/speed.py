@@ -77,7 +77,7 @@ def speed(clip, scale = None, duration = None, frameCount = None):
     elif isinstance(clip, vfx.speed.SpedVideoClip):
       # SpedVideoClip = SpedVideoClip
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
-      return clip._source[0].speed(scale)
+      return clip._source[0].speed(scale * clip._scale)
     elif isinstance(clip, vfx.subclip.SubVideoClip):
       # SpedVideoClip < SubVideoClip
       if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
