@@ -174,5 +174,5 @@ class LoadedImageClip(ImageClip):
 
 
   def _imagegen(self):
-    image = self._reader.get_data(0) # Load the image into memory
+    image = self._reader.get_data(0)[:, :, 0:3] # Load the image into memory (discarding any alpha channel information)
     return image
