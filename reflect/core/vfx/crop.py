@@ -79,6 +79,11 @@ def crop(clip, x1 = None, y1 = None, x2 = None, y2 = None, xc = None, yc = None,
   if y2 > clip.height:
     raise ValueError("the crop region exceeds the clip's bottom boundary by {} pixels (y2 = {})".format(y2 - clip.height, y2))
 
+  if y2 <= y1:
+    raise ValueError("the crop region is invalid (y1 = {}, y2 = {})".format(y1, y2))
+  if x2 <= x1:
+    raise ValueError("the crop region is invalid (x1 = {}, x2 = {})".format(x1, x2))
+
   if x1 == 0 and y1 == 0 and x2 == clip.width and y2 == clip.height:
     return clip
 
