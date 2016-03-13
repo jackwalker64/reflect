@@ -1,6 +1,7 @@
 # reflect
 
-Python modules installed:
+## Python modules installed:
+
 * imageio 1.5
 * numpy 1.10.1
 * opencv-python 3.0.0
@@ -14,7 +15,8 @@ Python modules installed:
 * tkinter
   * Linux: sudo apt-get install python3-tk
 
-Installing on linux
+## Installing on linux
+
 * Get pip3: `sudo apt-get install python3-pip`
 * Install tkinter: `sudo apt-get install python3-tk`
 * Install graphviz: `sudo apt-get install graphviz`
@@ -64,9 +66,15 @@ Installing on linux
 * Go to the `reflect` directory (containing `setup.py`) and run: `sudo pip3 install -e .`
 * Run e.g. `python3 start.py -f examples/example5_slideshow.py -V graph.png`
 
+## Controls
 
+In the console:
+* `q` – Quit
+* `space` – Force reload
 
-
+In the preview window:
+* Middle click on the video area to play/pause
+* Press the spacebar to play/pause
 
 
 
