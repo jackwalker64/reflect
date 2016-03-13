@@ -73,13 +73,25 @@ class WatchdogHandler(FileSystemEventHandler):
   def on_modified(self, event):
     # Check that the modified file is actually the one we're watching
     if os.path.realpath(event.src_path) == os.path.realpath(self._filepath):
-      # Check that the contents of the file really have changed
-      with open(self._filepath, "rb") as f:
-        newFilehash = hashlib.md5(f.read()).hexdigest()
-      if newFilehash != self._filehash:
-        self._filehash = newFilehash
-        if not self._previewWindow.userScriptIsRunning:
-          ScriptRunner(self._filepath, self._previewWindow).start()
+      self.checkAndUpdate()
+
+
+
+  def on_moved(self, event):
+    # Check that the modified file is actually the one we're watching
+    if os.path.realpath(event.dest_path) == os.path.realpath(self._filepath):
+      self.checkAndUpdate()
+
+
+
+  def checkAndUpdate(self):
+    # Check that the contents of the file really have changed
+    with open(self._filepath, "rb") as f:
+      newFilehash = hashlib.md5(f.read()).hexdigest()
+    if newFilehash != self._filehash:
+      self._filehash = newFilehash
+      if not self._previewWindow.userScriptIsRunning:
+        ScriptRunner(self._filepath, self._previewWindow).start()
 
 
 
