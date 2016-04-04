@@ -85,12 +85,12 @@ class WatchdogHandler(FileSystemEventHandler):
 
 
   def checkAndUpdate(self):
-    # Check that the contents of the file really have changed
-    with open(self._filepath, "rb") as f:
-      newFilehash = hashlib.md5(f.read()).hexdigest()
-    if newFilehash != self._filehash:
-      self._filehash = newFilehash
-      if not self._previewWindow.userScriptIsRunning:
+    if not self._previewWindow.userScriptIsRunning:
+      # Check that the contents of the file really have changed
+      with open(self._filepath, "rb") as f:
+        newFilehash = hashlib.md5(f.read()).hexdigest()
+      if newFilehash != self._filehash:
+        self._filehash = newFilehash
         ScriptRunner(self._filepath, self._previewWindow).start()
 
 
@@ -201,7 +201,7 @@ class ScriptRunner(threading.Thread):
     logging.info(cache)
 
     # Close readers that were opened in the previous session but not claimed in the current session
-    for self._filepath, readers in reflect.core.roots.load.readyReaders.items():
+    for filepath, readers in reflect.core.roots.load.readyReaders.items():
       for reader in readers:
         reader.close()
     reflect.core.roots.load.readyReaders = {}
