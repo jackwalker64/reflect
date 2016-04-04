@@ -515,7 +515,7 @@ class CacheEntry(dict):
 
   @property
   def rawPriority(self):
-    if self.precedesHotnode and not self.isHotnode:
+    if (self.precedesHotnode and not self.isHotnode) or len(self.successors) < 1:
       return (1.0 + self.rootDistance + 100.0) / (2**self.age)
     else:
       return (1.0 + self.rootDistance) / (2**self.age)
