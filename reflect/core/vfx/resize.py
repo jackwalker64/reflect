@@ -51,6 +51,11 @@ def resize(clip, size = None, width = None, height = None, interpolation = cv2.I
     # There is no resizing to be done, so just return the source clip
     return clip
 
+  if width == 0:
+    raise ValueError("attempted to resize a clip to have zero width")
+  if height == 0:
+    raise ValueError("attempted to resize a clip to have zero height")
+
   # Push
   from ..clips import transformations
   if "CanonicalOrder" in transformations:
@@ -117,6 +122,8 @@ def resize(clip, size = None, width = None, height = None, interpolation = cv2.I
         bg = clip._source[0]
         fg = clip._source[1]
         fgSize = (round(fg.width * width / bg.width), round(fg.height * height / bg.height))
+        if fgSize[0] < 1 or fgSize[1] < 1:
+          return bg.resize(size, interpolation = interpolation)
         x = clip._x1 * width / bg.width
         y = clip._y1 * height / bg.height
         return bg.resize(size, interpolation = interpolation).composite(fg.resize(fgSize, interpolation = interpolation), x1 = x, y1 = y)
