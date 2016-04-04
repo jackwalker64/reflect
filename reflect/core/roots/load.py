@@ -20,8 +20,9 @@ def load(filepath):
   Constructs and returns a VideoClip or ImageClip object representing the media at `filepath`.
   """
 
+  filepath = os.path.realpath(filepath)
   if not os.path.exists(filepath):
-    raise IOError("The file \"{}\" does not exist.".format(os.path.realpath(filepath)))
+    raise IOError("The file \"{}\" does not exist.".format(filepath))
 
 
 
