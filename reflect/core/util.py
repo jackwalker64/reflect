@@ -116,6 +116,12 @@ def timecodeToFrame(t, fps):
   if not isinstance(t, str):
     raise TypeError("expected a timecode of type int, float, or str, but instead received a {}".format(type(t)))
 
+  if t[0] == "-":
+    negative = -1
+    t = t[1:]
+  else:
+    negative = 1
+
   # Parse the timecode string
   h = 0.0
   m = 0.0
@@ -139,7 +145,7 @@ def timecodeToFrame(t, fps):
   # Calculate the total number of seconds represented by the timecode
   totalSeconds = s + m * 60 + h * 60 * 60
 
-  return int(totalSeconds * fps)
+  return negative * round(totalSeconds * fps)
 
 
 
@@ -149,11 +155,17 @@ def frameToTimecode(n, fps):
   Converts the integer frame number `n` to a timecode "h:m:s".
   """
 
+  if n < 0:
+    prefix = "-"
+    n = -n
+  else:
+    prefix = ""
+
   (h, m_) = divmod(n, fps * 60 * 60)
   (m, s_) = divmod(m_, fps * 60)
   s = s_ / fps
 
-  return "{0:0>2.0f}:{1:0>2.0f}:{2:0>5.2f}".format(h, m, s)
+  return "{0}{1:0>2.0f}:{2:0>2.0f}:{3:0>5.2f}".format(prefix, h, m, s)
 
 
 
