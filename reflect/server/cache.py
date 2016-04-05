@@ -186,6 +186,13 @@ class Cache:
 
     # For each staged piece of data, either move it to the main cache or discard it (depending on its priority)
     for clip, stagedEntry in self._staged.items():
+      if clip.cacheEntry is None:
+        # Each node in the DAG should have a cache entry after the reprioritisation stage.
+        # The exception to this is resize nodes, which may have fused/annihilated with the special
+        # resize done to fit the clip within the preview window.
+        # In this case, `clip` is no longer in the DAG so its staged frames will not be used; they
+        # can therefore be safely discarded.
+        continue
       for n, data in stagedEntry.items():
         self.set(clip, n, data)
     self._staged = {}
