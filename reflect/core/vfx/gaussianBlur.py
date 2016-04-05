@@ -47,6 +47,18 @@ def gaussianBlur(clip, size = None, width = None, height = None, sigma = (0, 0))
   if not isinstance(width, int) or not isinstance(height, int) or width < 1 or height < 1 or width % 2 == 0 or height % 2 == 0:
     raise ValueError("gaussian blur amounts must be odd integers greater than or equal to 1")
 
+  if (isinstance(sigma, int) or isinstance(sigma, float)) and sigma < 0 or sigma == float("inf"):
+    raise ValueError("expected sigma to be a non-negative real number, but instead received sigma = {}".format(sigma))
+  elif isinstance(sigma, tuple):
+    if len(sigma) != 2:
+      raise TypeError("expected sigma to be either a number or a pair (sigmaX, sigmaY), but instead received a tuple of length {}".format(len(sigma)))
+    if (isinstance(sigma[0], int) or isinstance(sigma[0], float)) and sigma[0] < 0 or sigma[0] == float("inf"):
+      raise ValueError("expected sigmaX to be a non-negative real number, but instead received sigmaX = {}".format(sigma[0]))
+    if (isinstance(sigma[1], int) or isinstance(sigma[1], float)) and sigma[1] < 0 or sigma[1] == float("inf"):
+      raise ValueError("expected sigmaY to be a non-negative real number, but instead received sigmaY = {}".format(sigma[1]))
+  else:
+    raise TypeError("expected sigma to be either a number or a pair (sigmaX, sigmaY), but instead received a {}".format(type(sigma)))
+
   # Push
   from ..clips import transformations
   if "CanonicalOrder" in transformations:
