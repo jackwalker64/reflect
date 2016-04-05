@@ -98,6 +98,9 @@ def composite(clip, fg, x1 = None, y1 = None, t1 = None, x2 = None, y2 = None, x
   if n1 == n2:
     return clip
 
+  if x1 + fg.width <= 0 or x1 >= clip.width or y1 + fg.height <= 0 or y1 >= clip.height:
+    return clip
+
   # Generate the CompositeVideoClip part
   middle = compositePart(clip, fg, n1, n2, x1, y1)
 
@@ -203,10 +206,6 @@ class CompositeVideoClip(VideoClip):
     y2 = y1 + fg.height
 
     image = clip.frame(n)
-
-    if x2 < 0 or x1 > clip.width or y2 < 0 or y1 > clip.height:
-      # The foreground clip is not currently visible
-      return image
 
     # Determine the region of the foreground frame that will actually be visible when blitted
     fgx1 = max(0, -x1)
