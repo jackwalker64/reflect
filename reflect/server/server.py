@@ -17,10 +17,23 @@ from tkinter import filedialog
 
 
 
-def start(filepath, defaultFilepath, cacheSize):
+def start(filepath, defaultFilepath, cacheSize, cacheAlgorithm = None):
   logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET)
 
   logging.info("Starting the reflect server")
+
+  if cacheAlgorithm is None:
+    cacheKind = reflect.SpecialisedCache
+  else:
+    cacheKind = {
+      "specialised": reflect.SpecialisedCache,
+      "fifo": reflect.FIFOCache,
+      "lru": reflect.LRUCache,
+      "mru": reflect.MRUCache
+    }[cacheAlgorithm]
+  cache = cacheKind(cacheSize)
+  reflect.Cache.current().swap(cache)
+  logging.info("Using a {} cache with capacity {} MiB".format(type(cache).__name__, round(cache.maxSize / 1024 / 1024, 1)))
 
   if filepath is None:
     tkinter.Tk().withdraw() # Hide tkinter's root window
@@ -37,9 +50,6 @@ def start(filepath, defaultFilepath, cacheSize):
       filepath = response.name
 
   logging.info("Watching {}".format(filepath))
-
-  cache = reflect.Cache.current()
-  cache.maxSize = cacheSize
 
   previewWindow = reflect.window.Window(filepath)
 
@@ -112,6 +122,19 @@ class ConsoleHandler(threading.Thread):
           key = bytearray(key, "utf8")
         if key == b"\x03" or key == b"q":
           raise KeyboardInterrupt
+        elif key == b"c":
+          logging.info("Reset the cache statistics")
+          reflect.Cache.current().resetStats()
+        elif key == b"s":
+          stats = reflect.Cache.current().stats()
+          if stats["hits"] + stats["misses"] == 0:
+            logging.info("No cache stats yet collected")
+          else:
+            logging.info("Cache stats: {} hit ratio (total {} hits, {} misses)".format(
+              round(stats["hits"] / (stats["hits"] + stats["misses"]), 5),
+              stats["hits"],
+              stats["misses"]
+            ))
         elif key == b" ":
           # Manually re-run the script
           if not self._previewWindow.userScriptIsRunning:

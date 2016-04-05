@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import time
 
 visualiseFilepath = None
 
@@ -58,6 +59,12 @@ class Cache:
     self._currentSize = 0
     self.maxSize = maxSize
 
+    # For evaluation
+    self._stats = {
+      "hits": 0,
+      "misses": 0
+    }
+
 
 
   def __str__(self):
@@ -85,7 +92,8 @@ class Cache:
       for n, image in entry.items():
         committedBytes += image.nbytes
 
-    return "<Cache: ({} frames, {} MiB) staged / ({} bins, {} clips, {} frames, {} MiB) committed>".format(
+    return "<{}: ({} frames, {} MiB) staged / ({} bins, {} clips, {} frames, {} MiB) committed>".format(
+      type(self).__name__,
       # len(stagedBins),
       # stagedClips,
       stagedFrames,
@@ -95,6 +103,29 @@ class Cache:
       committedFrames,
       round(committedBytes / 1024 / 1024, 1)
     )
+
+
+
+  def stats(self):
+    return self._stats.copy()
+
+
+
+  def resetStats(self):
+    self._stats = {
+      "hits": 0,
+      "misses": 0
+    }
+
+
+
+  def hit(self, cacheEntry, n):
+    self._stats["hits"] += 1
+
+
+
+  def miss(self, cacheEntry, n):
+    self._stats["misses"] += 1
 
 
 
@@ -115,9 +146,11 @@ class Cache:
     # Check the persistent store
     cacheEntry = clip.cacheEntry
     if cacheEntry is not None and n in cacheEntry:
+      self.hit(cacheEntry, n)
       return cacheEntry[n]
 
     # The sought data is neither cached nor staged for caching.
+    self.miss(cacheEntry, n)
     if "default" in explicitParams:
       return default
     else:
@@ -142,28 +175,7 @@ class Cache:
 
 
   def set(self, clip, n, data):
-    if self.userScriptIsRunning:
-      if not self._stagingAreaIsLocked:
-        self.stage(clip, n, data)
-    else:
-      if clip.isIndirection:
-        # There's no point in caching this data, so reject it immediately
-        return
-      while self._currentSize + data.nbytes > self.maxSize and self._priorityQueue.peek() is not None and self._priorityQueue.peek().priority <= clip.cacheEntry.priority:
-        # There isn't room in the cache, but there exists some cached data with a lower priority than the candidate clip's
-        victim = self._priorityQueue.peek()
-        totalFreedBytes = victim.discardBytes(self._currentSize + data.nbytes - self.maxSize)
-        self._currentSize -= totalFreedBytes
-        if len(victim) == 0:
-          # All of the victim's data has been discarded
-          self._priorityQueue.findNewVictim()
-      if self._currentSize + data.nbytes <= self.maxSize:
-        # Add the data to the cache and ensure the priority queue knows the correct next victim
-        clip.cacheEntry[n] = data
-        self._currentSize += data.nbytes
-        currentVictim = self._priorityQueue.peek()
-        if currentVictim is None or currentVictim.priority >= clip.cacheEntry.priority:
-          self._priorityQueue.setVictim(clip.cacheEntry)
+    raise NotImplementedError()
 
 
 
@@ -199,6 +211,11 @@ class Cache:
 
 
 
+  def _setUpPriorities(self, graph):
+    raise NotImplementedError()
+
+
+
   def reprioritise(self, graph):
     """reprioritise(graph)
 
@@ -217,7 +234,6 @@ class Cache:
     * Each clip in `graph` has a new dict property `indirectionsTakenCareOf` (which can be ignored).
     """
 
-    import time
     t1 = time.time()
 
     # Ensure that the precondition is met
@@ -381,8 +397,7 @@ class Cache:
       # Remove the (clip, cacheEntry) item from the master dict
       del self._committed[clip]
 
-    # Replace the priority queue
-    self._priorityQueue = PriorityQueue(self._committed)
+    self._setUpPriorities()
 
     t2 = time.time()
     logging.info("Reprioritised {} nodes in {} s".format(N[0], t2 - t1))
@@ -505,6 +520,19 @@ class CacheEntry(dict):
 
 
 
+  def discardFrame(self, n):
+    """discardFrame(n)
+
+    Discard the specific frame `n`, and return the exact number of bytes discarded.
+    """
+
+    discardedBytes = self[n].nbytes
+    del self[n]
+
+    return discardedBytes
+
+
+
   @property
   def priority(self):
     if self.isIndirection:
@@ -529,8 +557,55 @@ class CacheEntry(dict):
 
 
 
-class PriorityQueue(object):
-  """PriorityQueue()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class SpecialisedPriorityQueue(object):
+  """SpecialisedPriorityQueue()
 
   Keeps track of clips in the cache in ascending order of their priority.
   """
@@ -584,3 +659,199 @@ class PriorityQueue(object):
       self._victimIndex = min(self._victimIndex, newVictimIndex)
     else:
       self._victimIndex = newVictimIndex
+
+
+
+class SpecialisedCache(Cache):
+
+  def set(self, clip, n, data):
+    if self.userScriptIsRunning:
+      if not self._stagingAreaIsLocked:
+        self.stage(clip, n, data)
+    else:
+      if clip.isIndirection:
+        # There's no point in caching this data, so reject it immediately
+        return
+      while self._currentSize + data.nbytes > self.maxSize and self._priorityQueue.peek() is not None and self._priorityQueue.peek().priority <= clip.cacheEntry.priority:
+        # There isn't room in the cache, but there exists some cached data with a lower priority than the candidate clip's
+        victim = self._priorityQueue.peek()
+        totalFreedBytes = victim.discardBytes(self._currentSize + data.nbytes - self.maxSize)
+        self._currentSize -= totalFreedBytes
+        if len(victim) == 0:
+          # All of the victim's data has been discarded
+          self._priorityQueue.findNewVictim()
+      if self._currentSize + data.nbytes <= self.maxSize:
+        # Add the data to the cache and ensure the priority queue knows the correct next victim
+        clip.cacheEntry[n] = data
+        self._currentSize += data.nbytes
+        currentVictim = self._priorityQueue.peek()
+        if currentVictim is None or currentVictim.priority >= clip.cacheEntry.priority:
+          self._priorityQueue.setVictim(clip.cacheEntry)
+
+  def _setUpPriorities(self):
+    # Replace the priority queue
+    self._priorityQueue = SpecialisedPriorityQueue(self._committed)
+
+
+
+class FIFOCache(Cache):
+
+  def set(self, clip, n, data):
+    if self.userScriptIsRunning:
+      if not self._stagingAreaIsLocked:
+        self.stage(clip, n, data)
+    else:
+      while self._currentSize + data.nbytes > self.maxSize and len(self._priorityQueue) > 0:
+        (victim, frameToDiscard) = self._priorityQueue.pop(0)
+        # print("discarding {}/{}".format(victim.node, frameToDiscard))
+        totalFreedBytes = victim.discardFrame(frameToDiscard)
+        self._currentSize -= totalFreedBytes
+      if self._currentSize + data.nbytes <= self.maxSize:
+        # print("caching {}/{}".format(clip, n))
+        clip.cacheEntry[n] = data
+        self._currentSize += data.nbytes
+        self._priorityQueue.append((clip.cacheEntry, n))
+
+  def _setUpPriorities(self):
+    if self._priorityQueue is None:
+      self._priorityQueue = []
+
+
+
+class RecentlyUsedPriorityQueue(object):
+
+  class Victim(object):
+    def __init__(self, data, next = None, prev = None):
+      self.data = data
+      self.next = next
+      self.prev = prev
+
+  def __init__(self):
+    self.head = None
+    self.tail = None
+    self.hashtable = {}
+
+  def insert(self, cacheEntry, n):
+    if self.head is None:
+      victim = self.Victim((cacheEntry, n))
+      self.head = victim
+      self.tail = victim
+    else:
+      victim = self.Victim((cacheEntry, n), self.head)
+      self.head = victim
+      victim.next.prev = victim
+    self.hashtable[(id(cacheEntry), n)] = victim
+    return victim
+
+  def access(self, cacheEntry, n):
+    victim = self.hashtable.get((id(cacheEntry), n), None)
+    if victim is None:
+      self.insert(cacheEntry, n)
+    else:
+      # Move it to the front
+      if victim.prev is None:
+        pass
+      else:
+        victim.prev.next = victim.next
+        if victim.next is None:
+          self.tail = victim.prev
+        else:
+          victim.next.prev = victim.prev
+        victim.prev = None
+        victim.next = self.head
+        self.head.prev = victim
+        self.head = victim
+
+  def __str__(self):
+    victims = []
+    current = self.head
+    while current is not None:
+      e, n = current.data
+      victims.append("{}{}".format(type(e.node).__name__[0], n))
+      current = current.next
+    return str(victims)
+
+  def popHead(self):
+    if self.isEmpty():
+      raise IndexError()
+    else:
+      victim = self.head
+      if victim.next is None:
+        self.head = None
+        self.tail = None
+      else:
+        self.head = victim.next
+        victim.next.prev = None
+      return victim.data
+
+  def popTail(self):
+    if self.isEmpty():
+      raise IndexError()
+    else:
+      victim = self.tail
+      if victim.prev is None:
+        self.head = None
+        self.tail = None
+      else:
+        self.tail = victim.prev
+        victim.prev.next = None
+      return victim.data
+
+  def isEmpty(self):
+    return self.head is None
+
+
+
+class LRUCache(Cache):
+
+  def hit(self, cacheEntry, n):
+    super().hit(cacheEntry, n)
+    self._priorityQueue.access(cacheEntry, n)
+
+  def set(self, clip, n, data):
+    if self.userScriptIsRunning:
+      if not self._stagingAreaIsLocked:
+        self.stage(clip, n, data)
+    else:
+      while self._currentSize + data.nbytes > self.maxSize and not self._priorityQueue.isEmpty():
+        (victim, frameToDiscard) = self._priorityQueue.popTail()
+        # print("discarding {}/{}".format(victim.node, frameToDiscard))
+        totalFreedBytes = victim.discardFrame(frameToDiscard)
+        self._currentSize -= totalFreedBytes
+      if self._currentSize + data.nbytes <= self.maxSize:
+        # print("caching {}/{}".format(clip, n))
+        clip.cacheEntry[n] = data
+        self._currentSize += data.nbytes
+        self._priorityQueue.insert(clip.cacheEntry, n)
+
+  def _setUpPriorities(self):
+    if self._priorityQueue is None:
+      self._priorityQueue = RecentlyUsedPriorityQueue()
+
+
+
+class MRUCache(Cache):
+
+  def hit(self, cacheEntry, n):
+    super().hit(cacheEntry, n)
+    self._priorityQueue.access(cacheEntry, n)
+
+  def set(self, clip, n, data):
+    if self.userScriptIsRunning:
+      if not self._stagingAreaIsLocked:
+        self.stage(clip, n, data)
+    else:
+      while self._currentSize + data.nbytes > self.maxSize and not self._priorityQueue.isEmpty():
+        (victim, frameToDiscard) = self._priorityQueue.popHead()
+        # print("discarding {}/{}".format(victim.node, frameToDiscard))
+        totalFreedBytes = victim.discardFrame(frameToDiscard)
+        self._currentSize -= totalFreedBytes
+      if self._currentSize + data.nbytes <= self.maxSize:
+        # print("caching {}/{}".format(clip, n))
+        clip.cacheEntry[n] = data
+        self._currentSize += data.nbytes
+        self._priorityQueue.insert(clip.cacheEntry, n)
+
+  def _setUpPriorities(self):
+    if self._priorityQueue is None:
+      self._priorityQueue = RecentlyUsedPriorityQueue()
