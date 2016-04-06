@@ -42,7 +42,7 @@ class Cache:
 
 
 
-  def __init__(self, maxSize):
+  def __init__(self, maxSize, enableStatistics = False):
     # These two-level dicts implement functions (clip → n → data).
     # They are expected (but not strictly required) to be disjoint, i.e.
     #   (n in committed[clip]) -> not(n in staged[clip]),
@@ -59,11 +59,10 @@ class Cache:
     self._currentSize = 0
     self.maxSize = maxSize
 
+    self._enableStatistics = enableStatistics
+
     # For evaluation
-    self._stats = {
-      "hits": 0,
-      "misses": 0
-    }
+    self.resetStats()
 
 
 
@@ -107,25 +106,61 @@ class Cache:
 
 
   def stats(self):
-    return self._stats.copy()
+    if not self._enableStatistics:
+      return "Stats are not being collected; use --collectStatistics to enable stats"
+
+    denominator = self._stats["hits"] + self._stats["misses"]["noncompulsory"]
+    if denominator != 0:
+      hitRatio = round(self._stats["hits"] / denominator, 5)
+    else:
+      hitRatio = "inf"
+
+    return "Cache stats: {} h / {} ncm / {} cm / {} hr".format(
+      self._stats["hits"],
+      self._stats["misses"]["noncompulsory"],
+      self._stats["misses"]["compulsory"],
+      hitRatio
+    )
 
 
 
   def resetStats(self):
     self._stats = {
       "hits": 0,
-      "misses": 0
+      "misses": {
+        "compulsory": 0,
+        "noncompulsory": 0
+      },
+      "seenFrames": {}
     }
 
 
 
   def hit(self, cacheEntry, n):
-    self._stats["hits"] += 1
+    if self._enableStatistics:
+      if not cacheEntry.isIndirection:
+        # print("Hit {}.{}.{}".format(cacheEntry.node, id(cacheEntry), n))
+        self._stats["hits"] += 1
+        logging.info(self.stats())
 
 
 
   def miss(self, cacheEntry, n):
-    self._stats["misses"] += 1
+    if self._enableStatistics:
+      if not cacheEntry.isIndirection:
+        if (id(cacheEntry), n) in self._stats["seenFrames"]:
+          # print("NCM {}.{}.{}".format(cacheEntry.node, id(cacheEntry), n))
+          self._stats["misses"]["noncompulsory"] += 1
+        else:
+          # print("CM {}.{}.{}".format(cacheEntry.node, id(cacheEntry), n))
+          self._stats["misses"]["compulsory"] += 1
+        logging.info(self.stats())
+
+
+
+  def seenFrame(self, cacheEntry, n):
+    if self._enableStatistics:
+      self._stats["seenFrames"][(id(cacheEntry), n)] = True
 
 
 
@@ -175,7 +210,8 @@ class Cache:
 
 
   def set(self, clip, n, data):
-    raise NotImplementedError()
+    if clip.cacheEntry is not None:
+      self.seenFrame(clip.cacheEntry, n)
 
 
 
@@ -474,6 +510,300 @@ currentCache = Cache(maxSize = 100 * 1024 * 1024) # 100 MiB
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class RecentlyUsedQueue(object):
+
+  class Victim(object):
+    def __init__(self, data, next = None, prev = None):
+      self.data = data
+      self.next = next
+      self.prev = prev
+
+  def __init__(self):
+    self.head = None
+    self.tail = None
+    self.hashtable = {}
+
+  def __len__(self):
+    return len(self.hashtable)
+
+  def __contains__(self, data):
+    return data in self.hashtable
+
+  def keyOf(self, data):
+    return data
+
+  def insert(self, data):
+    if data in self.hashtable:
+      raise ValueError("Tried to insert {} into the RecentlyUsedQueue, but it was already there")
+    if self.head is None:
+      victim = self.Victim(data)
+      self.head = victim
+      self.tail = victim
+    else:
+      victim = self.Victim(data, self.head)
+      self.head = victim
+      victim.next.prev = victim
+    self.hashtable[self.keyOf(data)] = victim
+    return victim
+
+  def append(self, data):
+    if data in self.hashtable:
+      raise ValueError("Tried to append {} to the RecentlyUsedQueue, but it was already there")
+    if self.tail is None:
+      victim = self.Victim(data)
+      self.head = victim
+      self.tail = victim
+    else:
+      victim = self.Victim(data, None, self.tail)
+      self.tail = victim
+      victim.prev.next = victim
+    self.hashtable[self.keyOf(data)] = victim
+    return victim
+
+  def access(self, data):
+    victim = self.hashtable.get(self.keyOf(data), None)
+    if victim is None:
+      self.insert(data)
+    else:
+      # Move it to the front
+      if victim.prev is None:
+        pass
+      else:
+        victim.prev.next = victim.next
+        if victim.next is None:
+          self.tail = victim.prev
+        else:
+          victim.next.prev = victim.prev
+        victim.prev = None
+        victim.next = self.head
+        self.head.prev = victim
+        self.head = victim
+
+  def delete(self, data):
+    victim = self.hashtable[self.keyOf(data)]
+
+    if victim.next is None:
+      if victim.prev is None:
+        self.head = None
+        self.tail = None
+      else:
+        victim.prev.next = None
+        self.tail = victim.prev
+    else:
+      if victim.prev is None:
+        victim.next.prev = None
+        self.head = victim.next
+      else:
+        victim.prev.next = victim.next
+        victim.next.prev = victim.prev
+
+    del self.hashtable[self.keyOf(data)]
+
+  def __str__(self):
+    victims = []
+    current = self.head
+    while current is not None:
+      victims.append(current.data)
+      current = current.next
+    return str(victims)
+
+  def popHead(self):
+    if self.isEmpty():
+      raise KeyError()
+
+    victim = self.head
+    if victim.next is None:
+      self.head = None
+      self.tail = None
+    else:
+      self.head = victim.next
+      victim.next.prev = None
+
+    del self.hashtable[self.keyOf(victim.data)]
+
+    return victim.data
+
+  def popTail(self):
+    if self.isEmpty():
+      raise KeyError()
+
+    victim = self.tail
+    if victim.prev is None:
+      self.head = None
+      self.tail = None
+    else:
+      self.tail = victim.prev
+      victim.prev.next = None
+
+    del self.hashtable[self.keyOf(victim.data)]
+
+    return victim.data
+
+  def isEmpty(self):
+    return self.head is None
+
+
+
+class MiddleRecentlyUsedQueue(object):
+
+  def __init__(self):
+    self.q1 = RecentlyUsedQueue()
+    self.q2 = RecentlyUsedQueue()
+
+  def __len__(self):
+    return len(self.q1) + len(self.q2)
+
+  def __contains__(self, data):
+    return data in self.q1 or data in self.q2
+
+  @property
+  def head(self):
+    return self.q1.head
+
+  @property
+  def middle(self):
+    return self.q2.head
+
+  @property
+  def tail(self):
+    return self.q2.tail
+
+  def recoverInvariant(self):
+    # Adjust
+    if len(self.q1) >= len(self.q2) + 1:
+      # Shift q1's tail to q2's head
+      self.q2.insert(self.q1.tail.data)
+      self.q1.delete(self.q1.tail.data)
+    elif len(self.q1) == len(self.q2) - 2:
+      # Shift q2's head to q1's tail
+      self.q1.append(self.q2.head.data)
+      self.q2.delete(self.q2.head.data)
+
+    # Check invariant
+    if len(self.q1) > len(self.q2) + 1 or len(self.q1) < len(self.q2) - 1:
+      raise Exception()
+
+  def keyOf(self, data):
+    return data
+
+  def insert(self, data):
+    if data in self.q1:
+      raise ValueError("Tried to insert {} into the MiddleRecentlyUsedQueue, but it was already there")
+    elif data in self.q2:
+      raise ValueError("Tried to insert {} into the MiddleRecentlyUsedQueue, but it was already there")
+    else:
+      self.q1.insert(data)
+
+      self.recoverInvariant()
+
+  def append(self, data):
+    if data in self.q1:
+      raise ValueError("Tried to append {} to the MiddleRecentlyUsedQueue, but it was already there")
+    elif data in self.q2:
+      raise ValueError("Tried to append {} to the MiddleRecentlyUsedQueue, but it was already there")
+    else:
+      self.q2.append(data)
+
+      self.recoverInvariant()
+
+  def access(self, data):
+    if data in self.q1:
+      self.q1.access(data)
+    elif data in self.q2:
+      self.q2.delete(data)
+      self.q1.insert(data)
+      self.recoverInvariant()
+    else:
+      raise KeyError(data)
+
+  def delete(self, data):
+    if data in self.q1:
+      self.q1.delete(data)
+    elif data in self.q2:
+      self.q2.delete(data)
+    else:
+      raise KeyError(data)
+
+    self.recoverInvariant()
+
+  def __str__(self):
+    return "q1: {}\nq2: {}".format(self.q1, self.q2)
+
+  def popHead(self):
+    data = self.q1.popHead()
+
+    self.recoverInvariant()
+
+    return data
+
+  def popMiddle(self):
+    data = self.q2.popHead()
+
+    self.recoverInvariant()
+
+    return data
+
+  def popTail(self):
+    data = self.q2.popTail()
+
+    self.recoverInvariant()
+
+    return data
+
+  def isEmpty(self):
+    return self.head is None
+
+
+
 class CacheEntry(dict):
   """CacheEntry()
 
@@ -497,6 +827,29 @@ class CacheEntry(dict):
     self.successors = {}
     self.traverseTime = traverseTime
 
+    self.heldFrames = MiddleRecentlyUsedQueue()
+
+  def __getitem__(self, key):
+    val = dict.__getitem__(self, key)
+    self.heldFrames.access(key)
+    return val
+
+  def __setitem__(self, key, val):
+    self.heldFrames.insert(key)
+    dict.__setitem__(self, key, val)
+
+  def __delitem__(self, key):
+    if key in self.heldFrames:
+      raise KeyError("Tried to delete {} from the CacheEntry, but {} is still in the MiddleRecentlyUsedQueue. Its queue entry should be removed (e.g. popped) before attempting to discard the actual frame data.")
+    dict.__delitem__(self, key)
+
+  def __repr__(self):
+    return "{}({})".format(type(self).__name__, dict.__repr__(self))
+
+  def update(self, *args, **kwargs):
+    for k, v in dict(*args, **kwargs).iteritems():
+      self[k] = v
+
 
 
   def discardBytes(self, target):
@@ -506,17 +859,17 @@ class CacheEntry(dict):
     of bytes discarded.
     """
 
-    bytesToDiscard = 0
-    victims = []
-    for n, data in self.items():
-      victims.append(n)
-      bytesToDiscard += data.nbytes
-      if bytesToDiscard > target:
-        break
-    for victim in victims:
-      del self[victim]
+    bytesDiscarded = 0
+    while bytesDiscarded < target and len(self.heldFrames) > 0:
+      n = self.heldFrames.popMiddle()
 
-    return bytesToDiscard
+      # Using self[n] here would involve calling self.heldFrames.access(n), which would fail
+      # because n has already been popped.
+      bytesDiscarded += dict.__getitem__(self, n).nbytes
+
+      del self[n]
+
+    return bytesDiscarded
 
 
 
@@ -537,8 +890,6 @@ class CacheEntry(dict):
   def priority(self):
     if self.isIndirection:
       return float("-inf")
-    elif self.isRoot:
-      return float("-inf")
     elif self.associatedIndirections:
       # An indirection of this node might have a higher priority than this node's raw priority, so find the maximum
       maxPriorityFromAssociatedIndirections = max([indirection.rawPriority for indirection in self.associatedIndirections])
@@ -554,53 +905,6 @@ class CacheEntry(dict):
       return (1.0 + self.rootDistance + 100.0) / (2**self.age)
     else:
       return (1.0 + self.rootDistance) / (2**self.age)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -665,6 +969,8 @@ class SpecialisedPriorityQueue(object):
 class SpecialisedCache(Cache):
 
   def set(self, clip, n, data):
+    super().set(clip, n, data)
+
     if self.userScriptIsRunning:
       if not self._stagingAreaIsLocked:
         self.stage(clip, n, data)
@@ -697,10 +1003,15 @@ class SpecialisedCache(Cache):
 class FIFOCache(Cache):
 
   def set(self, clip, n, data):
+    super().set(clip, n, data)
+
     if self.userScriptIsRunning:
       if not self._stagingAreaIsLocked:
         self.stage(clip, n, data)
     else:
+      if clip.isIndirection:
+        # There's no point in caching this data, so reject it immediately
+        return
       while self._currentSize + data.nbytes > self.maxSize and len(self._priorityQueue) > 0:
         (victim, frameToDiscard) = self._priorityQueue.pop(0)
         # print("discarding {}/{}".format(victim.node, frameToDiscard))
@@ -718,101 +1029,37 @@ class FIFOCache(Cache):
 
 
 
-class RecentlyUsedPriorityQueue(object):
-
-  class Victim(object):
-    def __init__(self, data, next = None, prev = None):
-      self.data = data
-      self.next = next
-      self.prev = prev
-
-  def __init__(self):
-    self.head = None
-    self.tail = None
-    self.hashtable = {}
-
-  def insert(self, cacheEntry, n):
-    if self.head is None:
-      victim = self.Victim((cacheEntry, n))
-      self.head = victim
-      self.tail = victim
-    else:
-      victim = self.Victim((cacheEntry, n), self.head)
-      self.head = victim
-      victim.next.prev = victim
-    self.hashtable[(id(cacheEntry), n)] = victim
-    return victim
-
-  def access(self, cacheEntry, n):
-    victim = self.hashtable.get((id(cacheEntry), n), None)
-    if victim is None:
-      self.insert(cacheEntry, n)
-    else:
-      # Move it to the front
-      if victim.prev is None:
-        pass
-      else:
-        victim.prev.next = victim.next
-        if victim.next is None:
-          self.tail = victim.prev
-        else:
-          victim.next.prev = victim.prev
-        victim.prev = None
-        victim.next = self.head
-        self.head.prev = victim
-        self.head = victim
-
-  def __str__(self):
-    victims = []
-    current = self.head
-    while current is not None:
-      e, n = current.data
-      victims.append("{}{}".format(type(e.node).__name__[0], n))
-      current = current.next
-    return str(victims)
-
-  def popHead(self):
-    if self.isEmpty():
-      raise IndexError()
-    else:
-      victim = self.head
-      if victim.next is None:
-        self.head = None
-        self.tail = None
-      else:
-        self.head = victim.next
-        victim.next.prev = None
-      return victim.data
-
-  def popTail(self):
-    if self.isEmpty():
-      raise IndexError()
-    else:
-      victim = self.tail
-      if victim.prev is None:
-        self.head = None
-        self.tail = None
-      else:
-        self.tail = victim.prev
-        victim.prev.next = None
-      return victim.data
-
-  def isEmpty(self):
-    return self.head is None
-
-
-
 class LRUCache(Cache):
+
+  class LeastRecentlyUsedQueue(RecentlyUsedQueue):
+
+    def keyOf(self, data):
+      cacheEntry, n = data
+      return (id(cacheEntry), n)
+
+    def __str__(self):
+      victims = []
+      current = self.head
+      while current is not None:
+        e, n = current.data
+        victims.append("{}{}".format(type(e.node).__name__[0], n))
+        current = current.next
+      return str(victims)
 
   def hit(self, cacheEntry, n):
     super().hit(cacheEntry, n)
-    self._priorityQueue.access(cacheEntry, n)
+    self._priorityQueue.access((cacheEntry, n))
 
   def set(self, clip, n, data):
+    super().set(clip, n, data)
+
     if self.userScriptIsRunning:
       if not self._stagingAreaIsLocked:
         self.stage(clip, n, data)
     else:
+      if clip.isIndirection:
+        # There's no point in caching this data, so reject it immediately
+        return
       while self._currentSize + data.nbytes > self.maxSize and not self._priorityQueue.isEmpty():
         (victim, frameToDiscard) = self._priorityQueue.popTail()
         # print("discarding {}/{}".format(victim.node, frameToDiscard))
@@ -822,25 +1069,45 @@ class LRUCache(Cache):
         # print("caching {}/{}".format(clip, n))
         clip.cacheEntry[n] = data
         self._currentSize += data.nbytes
-        self._priorityQueue.insert(clip.cacheEntry, n)
+        self._priorityQueue.insert((clip.cacheEntry, n))
 
   def _setUpPriorities(self):
     if self._priorityQueue is None:
-      self._priorityQueue = RecentlyUsedPriorityQueue()
+      self._priorityQueue = self.LeastRecentlyUsedQueue()
 
 
 
 class MRUCache(Cache):
 
+  class MostRecentlyUsedQueue(RecentlyUsedQueue):
+
+    def keyOf(self, data):
+      cacheEntry, n = data
+      return (id(cacheEntry), n)
+
+    def __str__(self):
+      victims = []
+      current = self.head
+      while current is not None:
+        e, n = current.data
+        victims.append("{}{}".format(type(e.node).__name__[0], n))
+        current = current.next
+      return str(victims)
+
   def hit(self, cacheEntry, n):
     super().hit(cacheEntry, n)
-    self._priorityQueue.access(cacheEntry, n)
+    self._priorityQueue.access((cacheEntry, n))
 
   def set(self, clip, n, data):
+    super().set(clip, n, data)
+
     if self.userScriptIsRunning:
       if not self._stagingAreaIsLocked:
         self.stage(clip, n, data)
     else:
+      if clip.isIndirection:
+        # There's no point in caching this data, so reject it immediately
+        return
       while self._currentSize + data.nbytes > self.maxSize and not self._priorityQueue.isEmpty():
         (victim, frameToDiscard) = self._priorityQueue.popHead()
         # print("discarding {}/{}".format(victim.node, frameToDiscard))
@@ -850,8 +1117,8 @@ class MRUCache(Cache):
         # print("caching {}/{}".format(clip, n))
         clip.cacheEntry[n] = data
         self._currentSize += data.nbytes
-        self._priorityQueue.insert(clip.cacheEntry, n)
+        self._priorityQueue.insert((clip.cacheEntry, n))
 
   def _setUpPriorities(self):
     if self._priorityQueue is None:
-      self._priorityQueue = RecentlyUsedPriorityQueue()
+      self._priorityQueue = self.MostRecentlyUsedQueue()

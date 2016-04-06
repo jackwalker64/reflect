@@ -17,7 +17,7 @@ from tkinter import filedialog
 
 
 
-def start(filepath, defaultFilepath, cacheSize, cacheAlgorithm = None):
+def start(filepath, defaultFilepath, cacheSize, cacheAlgorithm = None, enableStatistics = False):
   logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET)
 
   logging.info("Starting the reflect server")
@@ -31,7 +31,7 @@ def start(filepath, defaultFilepath, cacheSize, cacheAlgorithm = None):
       "lru": reflect.LRUCache,
       "mru": reflect.MRUCache
     }[cacheAlgorithm]
-  cache = cacheKind(cacheSize)
+  cache = cacheKind(cacheSize, enableStatistics = enableStatistics)
   reflect.Cache.current().swap(cache)
   logging.info("Using a {} cache with capacity {} MiB".format(type(cache).__name__, round(cache.maxSize / 1024 / 1024, 1)))
 
@@ -126,15 +126,7 @@ class ConsoleHandler(threading.Thread):
           logging.info("Reset the cache statistics")
           reflect.Cache.current().resetStats()
         elif key == b"s":
-          stats = reflect.Cache.current().stats()
-          if stats["hits"] + stats["misses"] == 0:
-            logging.info("No cache stats yet collected")
-          else:
-            logging.info("Cache stats: {} hit ratio (total {} hits, {} misses)".format(
-              round(stats["hits"] / (stats["hits"] + stats["misses"]), 5),
-              stats["hits"],
-              stats["misses"]
-            ))
+          logging.info(reflect.Cache.current().stats())
         elif key == b" ":
           # Manually re-run the script
           if not self._previewWindow.userScriptIsRunning:

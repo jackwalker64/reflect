@@ -19,6 +19,7 @@ def main():
   parser.add_argument("-f", "--filepath", required = False, default = None, help = "The path to the python script to watch.")
   parser.add_argument("-m", "--cacheSize", required = False, default = 100, help = "The maximum size, in MiB, of the cache. Default is 100 MiB.")
   parser.add_argument("-c", "--cacheAlgorithm", required = False, default = "specialised", choices = ["specialised", "fifo", "lru", "mru"], help = "The caching algorithm to use.")
+  parser.add_argument("-s", "--enableStatistics", action = "store_true", help = "Collect information about cache hits and misses. Press `s` in the console to print the current statistics, or `c` to reset them.")
   args = parser.parse_args()
 
   defaultFilepath = "D:\\Documents\\University\\Year 3\\_Project\\Git\\reflect\\examples\\example.py"
@@ -41,7 +42,7 @@ def main():
   else:
     reflect.setTransformations(["CanonicalOrder", "FlattenConcats"])
 
-  reflect.server.start(filepath, defaultFilepath, cacheSize = int(args.cacheSize) * 1024 * 1024, cacheAlgorithm = args.cacheAlgorithm)
+  reflect.server.start(filepath, defaultFilepath, cacheSize = int(args.cacheSize) * 1024 * 1024, cacheAlgorithm = args.cacheAlgorithm, enableStatistics = args.enableStatistics)
 
   print("")
 
