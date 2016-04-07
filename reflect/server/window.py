@@ -492,9 +492,14 @@ class Window(object):
     leaf = self._leaves[self._currentTab]["clip"]
     n = self._leaves[self._currentTab]["currentFrame"]
 
-    image = leaf.frame(n)
     if Cache.current()._enableStatistics:
+      t1 = time.perf_counter()
+      image = leaf.frame(n)
+      t2 = time.perf_counter()
       logging.info(Cache.current().stats())
+      logging.info("Accessed frame {} in {} us".format(n, round((t2 - t1) * 1000000, 5)))
+    else:
+      image = leaf.frame(n)
 
     self._screen.fill((127, 127, 127), rect = self._displayPanel)
 
