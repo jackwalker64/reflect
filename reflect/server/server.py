@@ -17,8 +17,11 @@ from tkinter import filedialog
 
 
 
-def start(filepath, defaultFilepath, cacheSize, cacheAlgorithm = None, enableStatistics = False):
-  logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET)
+def start(filepath, defaultFilepath, cacheSize, cacheAlgorithm = None, enableStatistics = False, logFilepath = None):
+  if logFilepath is not None:
+    logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET, filename = logFilepath)
+  else:
+    logging.basicConfig(format = "%(levelname)s: %(message)s", level = logging.NOTSET)
 
   logging.info("Starting the reflect server")
 
@@ -122,7 +125,7 @@ class ConsoleHandler(threading.Thread):
           key = bytearray(key, "utf8")
         if key == b"\x03" or key == b"q":
           raise KeyboardInterrupt
-        elif key == b"c":
+        elif key == b"r":
           logging.info("Reset the cache statistics")
           reflect.Cache.current().resetStats()
         elif key == b"s":

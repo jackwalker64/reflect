@@ -8,8 +8,10 @@ import logging
 import queue
 import cv2
 import math
+import logging
 from reflect.server import ScriptRunner
 from reflect.core.util import frameToTimecode
+from reflect.server.cache import Cache
 
 
 
@@ -491,6 +493,8 @@ class Window(object):
     n = self._leaves[self._currentTab]["currentFrame"]
 
     image = leaf.frame(n)
+    if Cache.current()._enableStatistics:
+      logging.info(Cache.current().stats())
 
     self._screen.fill((127, 127, 127), rect = self._displayPanel)
 
