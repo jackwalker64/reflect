@@ -24,11 +24,11 @@ def pillarbox(x, width, height):
 
 directoryPath = "examples/cambridge"
 v = None
-i, limit = 0, 3
+i, limit = 0, 5
 for filename in os.listdir(directoryPath):
   filepath = os.path.join(directoryPath, filename)
 
-  x = reflect.load(filepath).speed(duration = 4)
+  x = reflect.load(filepath).speed(duration = 2)
   if x.width / x.height > 800/480:
     x = letterbox(x, 800, 480)
   else:
