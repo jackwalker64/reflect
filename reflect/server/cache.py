@@ -760,7 +760,7 @@ class Cache:
     * Each clip in `graph` has a new dict property `indirectionsTakenCareOf` (which can be ignored).
     """
 
-    t1 = time.time()
+    t1 = time.perf_counter()
 
     # Ensure that the precondition is met
     for leaf in graph.leaves:
@@ -925,7 +925,7 @@ class Cache:
 
     self._setUpPriorities()
 
-    t2 = time.time()
+    t2 = time.perf_counter()
     logging.info("Reprioritised {} nodes in {} s".format(N[0], t2 - t1))
 
     # Debug
