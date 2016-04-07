@@ -159,6 +159,8 @@ class ScriptRunner(threading.Thread):
     if self._previewWindow.userScriptIsRunning:
       raise Exception("Attempted to run the script while it is already running")
 
+    t1 = time.perf_counter()
+
     self._previewWindow.userScriptIsRunning = True
     self._previewWindow.startBusy()
 
@@ -232,3 +234,7 @@ class ScriptRunner(threading.Thread):
     self._previewWindow.userScriptIsRunning = False
     self._previewWindow.stopBusy()
     self._previewWindow.startSession(reflect.CompositionGraph.current().leaves)
+
+    t2 = time.perf_counter()
+    logging.info("Compilation took {} s".format(t2 - t1))
+    print("")
