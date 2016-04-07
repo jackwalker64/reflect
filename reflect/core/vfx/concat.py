@@ -49,7 +49,7 @@ def concat(clip, *others):
     if isinstance(clip, ConcatenatedVideoClip):
       # Grab the sources of the input to avoid stacking ConcatenatedVideoClips
       source = clip._source + tuple(flattenedOthers)
-      if clip._childCount == 0 and other._graph.isLeaf(other):
+      if clip._childCount == 0 and clip._graph.isLeaf(clip):
         clip._graph.removeLeaf(clip)
     else:
       source = (clip,) + tuple(flattenedOthers)
