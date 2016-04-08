@@ -332,7 +332,14 @@ class Window(object):
   def _startSession(self, leaves, failed = False):
     def makeIcon(leaf):
       # Render the clip's frame and resize it to be used as an icon in the tabstrip
-      image = leaf.frame(0)
+      if Cache.current()._enableStatistics:
+        t1 = time.perf_counter()
+        image = leaf.frame(0)
+        t2 = time.perf_counter()
+        logging.info(Cache.current().stats())
+        logging.info("Accessed first frame for making icon in {} us".format(round((t2 - t1) * 1000000, 5)))
+      else:
+        image = leaf.frame(0)
       newHeight = self._tabstripPanel.height - 4
       newWidth = max(round(newHeight / 2), round(leaf.width * newHeight / leaf.height))
       resizedImage = cv2.resize(image, (newWidth, newHeight), interpolation = cv2.INTER_AREA)
