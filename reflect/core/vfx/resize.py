@@ -76,8 +76,17 @@ def resize(clip, size = None, width = None, height = None, interpolation = cv2.I
         if clip._interpolation == interpolation:
           # ResizedVideoClip_↓ = ResizedVideoClip_↓
           # ResizedVideoClip_↓ = ResizedVideoClip_↑
-          if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
-          return clip._source[0].resize(size, interpolation = interpolation)
+          if clip._source[0].size == size:
+            # Annihilate
+            if clip._childCount == 0 and clip._graph.isLeaf(clip):
+              clip._graph.removeLeaf(clip)
+              clip._source[0]._childCount -= 1
+              if clip._source[0]._childCount == 0:
+                clip._source[0]._graph.addLeaf(clip._source[0])
+            return clip._source[0]
+          else:
+            if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
+            return clip._source[0].resize(size, interpolation = interpolation)
       elif isinstance(clip, vfx.brighten.BrightenedVideoClip):
         # ResizedVideoClip_↓ < BrightenedVideoClip
         if clip._childCount == 0 and clip._graph.isLeaf(clip): clip._graph.removeLeaf(clip)
