@@ -190,9 +190,9 @@ class MiddleRecentlyUsedQueue(object):
 
   def insert(self, data):
     if data in self.q1:
-      raise ValueError("Tried to insert {} into the MiddleRecentlyUsedQueue, but it was already there")
+      raise ValueError("Tried to insert {} into the MiddleRecentlyUsedQueue, but it was already there".format(data))
     elif data in self.q2:
-      raise ValueError("Tried to insert {} into the MiddleRecentlyUsedQueue, but it was already there")
+      raise ValueError("Tried to insert {} into the MiddleRecentlyUsedQueue, but it was already there".format(data))
     else:
       self.q1.insert(data)
 
@@ -200,9 +200,9 @@ class MiddleRecentlyUsedQueue(object):
 
   def append(self, data):
     if data in self.q1:
-      raise ValueError("Tried to append {} to the MiddleRecentlyUsedQueue, but it was already there")
+      raise ValueError("Tried to append {} to the MiddleRecentlyUsedQueue, but it was already there".format(data))
     elif data in self.q2:
-      raise ValueError("Tried to append {} to the MiddleRecentlyUsedQueue, but it was already there")
+      raise ValueError("Tried to append {} to the MiddleRecentlyUsedQueue, but it was already there".format(data))
     else:
       self.q2.append(data)
 
@@ -737,7 +737,7 @@ class Cache:
 
 
 
-  def _setUpPriorities(self, graph):
+  def _setUpPriorities(self):
     raise NotImplementedError()
 
 
