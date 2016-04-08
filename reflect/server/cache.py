@@ -1048,11 +1048,9 @@ class FIFOCache(Cache):
         return
       while self._currentSize + data.nbytes > self.maxSize and len(self._priorityQueue) > 0:
         (victim, frameToDiscard) = self._priorityQueue.pop(0)
-        # print("discarding {}/{}".format(victim.node, frameToDiscard))
         totalFreedBytes = victim.discardFrame(frameToDiscard)
         self._currentSize -= totalFreedBytes
       if self._currentSize + data.nbytes <= self.maxSize:
-        # print("caching {}/{}".format(clip, n))
         clip.cacheEntry[n] = data
         self._currentSize += data.nbytes
         self._priorityQueue.append((clip.cacheEntry, n))
@@ -1096,11 +1094,9 @@ class LRUCache(Cache):
         return
       while self._currentSize + data.nbytes > self.maxSize and not self._priorityQueue.isEmpty():
         (victim, frameToDiscard) = self._priorityQueue.popTail()
-        # print("discarding {}/{}".format(victim.node, frameToDiscard))
         totalFreedBytes = victim.discardFrame(frameToDiscard)
         self._currentSize -= totalFreedBytes
       if self._currentSize + data.nbytes <= self.maxSize:
-        # print("caching {}/{}".format(clip, n))
         clip.cacheEntry[n] = data
         self._currentSize += data.nbytes
         self._priorityQueue.insert((clip.cacheEntry, n))
@@ -1144,11 +1140,9 @@ class MRUCache(Cache):
         return
       while self._currentSize + data.nbytes > self.maxSize and not self._priorityQueue.isEmpty():
         (victim, frameToDiscard) = self._priorityQueue.popHead()
-        # print("discarding {}/{}".format(victim.node, frameToDiscard))
         totalFreedBytes = victim.discardFrame(frameToDiscard)
         self._currentSize -= totalFreedBytes
       if self._currentSize + data.nbytes <= self.maxSize:
-        # print("caching {}/{}".format(clip, n))
         clip.cacheEntry[n] = data
         self._currentSize += data.nbytes
         self._priorityQueue.insert((clip.cacheEntry, n))
