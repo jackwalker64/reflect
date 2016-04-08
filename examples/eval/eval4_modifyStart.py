@@ -12,8 +12,8 @@ random.seed(42)
 
 def V():
   try:
-    b = reflect.server.BLUR_AMOUNT
     reflect.server.BLUR_AMOUNT += 1
+    b = reflect.server.BLUR_AMOUNT
   except AttributeError:
     reflect.server.BLUR_AMOUNT = 1
     b = reflect.server.BLUR_AMOUNT
