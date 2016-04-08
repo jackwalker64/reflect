@@ -21,7 +21,7 @@ def reflect_session(test_func):
 
     reflect.setMode("server")
     reflect.setTransformations(["CanonicalOrder", "FlattenConcats"])
-    reflect.cache.Cache.current().swap(reflect.cache.Cache(100*1024*1024)) # Reset the cache
+    reflect.cache.Cache.current().swap(reflect.cache.SpecialisedCache(100*1024*1024)) # Reset the cache
     reflect.CompositionGraph.reset()
 
     test_func(self, *args, **kwargs)
@@ -40,7 +40,7 @@ class CacheTestCase(unittest.TestCase):
   def test_swapping(self):
     c = reflect.cache.Cache.current()
     assert(c == c)
-    c.swap(reflect.cache.Cache(10))
+    c.swap(reflect.cache.SpecialisedCache(10))
     c2 = reflect.cache.Cache.current()
     assert(c != c2)
     c2.swap(c)
@@ -85,8 +85,6 @@ class CacheTestCase(unittest.TestCase):
     cache.commit()
 
     images = [(n, x.frame(n)) for n in [0, int(x.frameCount / 2), x.frameCount - 1]]
-    for n, image in images:
-      cache.set(x, n, image)
     for n, image in images:
       assert(numpy.array_equal(image, cache.get(x, n)))
 
