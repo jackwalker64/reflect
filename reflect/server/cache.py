@@ -926,7 +926,7 @@ class Cache:
     self._setUpPriorities()
 
     t2 = time.perf_counter()
-    logging.info("Reprioritised {} nodes in {} s".format(N[0], t2 - t1))
+    logging.info("Reprioritised {0} nodes in {1:.16f} s".format(N[0], t2 - t1))
 
     # Debug
     if visualiseFilepath is not None:

@@ -236,5 +236,5 @@ class ScriptRunner(threading.Thread):
     self._previewWindow.startSession(reflect.CompositionGraph.current().leaves)
 
     t2 = time.perf_counter()
-    logging.info("Compilation took {} s".format(t2 - t1))
+    logging.info("Compilation took {0:.16f} s".format(t2 - t1))
     print("")
