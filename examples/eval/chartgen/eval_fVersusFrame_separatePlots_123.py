@@ -22,27 +22,35 @@ if __name__ == "__main__":
     if h <= 0 or h + ncm == 0:
       return None
     else:
-      return math.log10(h / (h + ncm))
+      return h / (h + ncm)
 
   series = [
     {
       "name": "h",
       "color": "blue",
-      "function": (lambda h, ncm, cm: h - 1)
+      "function": (lambda h, ncm, cm: h - 1),
+      "isLogScale": False,
+      "yminmax": {}
     },
     # {
     #   "color": "red",
     #   "function": (lambda h, ncm, cm: ncm)
     # },
-    {
-      "name": "math.log10(h / h + ncm + cm)",
-      "color": "red",
-      "function": hitRatio
-    },
+    # {
+    #   "name": "math.log10(h / h + ncm + cm)",
+    #   "color": "red",
+    #   "function": hitRatio
+    # },
     {
       "name": "math.log10(h / h + ncm)",
       "color": "orange",
-      "function": hitRatioN
+      "function": hitRatioN,
+      "isLogScale": True,
+      "yminmax": {
+        "eval1_longLoop": (0.228758, 1.1),
+        "eval2_longLoopChained": (0.000186, 2),
+        "eval3_longLoopChainedStepping": (0.008, 1.4),
+      }
     },
     # {
     #   "color": "purple",
@@ -72,33 +80,50 @@ if __name__ == "__main__":
 
         for algorithm in algorithms:
           with open("../logs/{}_{}.log".format(identifier, algorithm)) as f:
+            t = 0
             for line in f:
               m = re.match(r"^INFO: Cache stats: (\d+) h / (\d+) ncm / (\d+) cm .*? hr$", line)
               if m is not None:
                 h, ncm, cm = m.groups()
                 h, ncm, cm = int(h), int(ncm), int(cm)
-                data[algorithm].append((h, ncm, cm))
+                if identifier == "eval3_longLoopChainedStepping":
+                  if t >= 100:
+                    data[algorithm].append((h, ncm, cm))
+                else:
+                  data[algorithm].append((h, ncm, cm))
+                t += 1
           xmax = len(data[algorithm])
 
         xmin = -0.1 * xmax
         xmax *= 1.1
 
-        ymin = min([min([s["function"](h, ncm, cm) for (h, ncm, cm) in data[algorithm] if s["function"](h, ncm, cm) is not None] + [float("inf")]) for algorithm in algorithms])
-        ymax = max([max([s["function"](h, ncm, cm) for (h, ncm, cm) in data[algorithm] if s["function"](h, ncm, cm) is not None] + [float("-inf")]) for algorithm in algorithms])
+        if identifier in s["yminmax"]:
+          ymin, ymax = s["yminmax"][identifier]
+        else:
+          ymin = min([min([s["function"](h, ncm, cm) for (h, ncm, cm) in data[algorithm] if s["function"](h, ncm, cm) is not None] + [float("inf")]) for algorithm in algorithms])
+          ymax = max([max([s["function"](h, ncm, cm) for (h, ncm, cm) in data[algorithm] if s["function"](h, ncm, cm) is not None] + [float("-inf")]) for algorithm in algorithms])
 
-        if ymin == float("inf"):
-          ymin = 0
-        if ymax == float("-inf"):
-          ymax = 0
+          if ymin == float("inf"):
+            ymin = 0
+          if ymax == float("-inf"):
+            ymax = 0
 
-        ygap = (ymax - ymin) / 10
-        ymax += ygap
-        ymin -= ygap
-        ymin, ymax = round(ymin, 4), round(ymax, 4)
+          if s["isLogScale"]:
+            ymax, ymin = math.log10(ymax), math.log10(ymin)
+          ygap = (ymax - ymin) / 10
+          ymax += ygap
+          ymin -= ygap
+          if s["isLogScale"]:
+            ymax, ymin = pow(10, ymax), pow(10, ymin)
+          ymin, ymax = round(ymin, 6), round(ymax, 6)
 
         for algorithm in algorithms:
           currentData = data[algorithm]
+
           options = "title={}, height=5cm, width=5cm, grid=major, xmin=({}), xmax=({}), ymin=({}), ymax=({})".format(algorithm, xmin, xmax, ymin, ymax)
+          if s["isLogScale"]:
+            options = "ymode=log, " + options
+            # , ytick={1,0.1,0.01,0.001, 0.0001, 0.00001, 0.000001}
           with doc.create(TikZ()):
             with doc.create(Axis(options = options)) as plot:
               color = s["color"]
