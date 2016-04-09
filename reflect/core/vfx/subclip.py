@@ -198,12 +198,11 @@ class SubVideoClip(VideoClip):
     n1 = self._n1
     n2 = self._n2
 
-    requestedFrame = n + n1
     if n < 0:
       raise IndexError("received a request for a frame with a negative index ({})".format(n))
     elif n >= n2 - n1:
       raise IndexError("received a request for the frame at index {}, but this subclip only contains {} frames".format(n, n2 - n1))
 
-    image = clip.frame(requestedFrame)
+    image = clip.frame(n + n1)
 
     return image
