@@ -210,7 +210,6 @@ class ScriptRunner(threading.Thread):
       if size != leaf.size:
         finalLeaf = leaf.resize(size)
         finalLeaf._timestamp = leaf._timestamp
-        finalLeaf._artificiallyResized = True # This node was created by the system rather than by the user
 
     # Update priorities according to the new composition graph
     cache.reprioritise(reflect.CompositionGraph.current())
