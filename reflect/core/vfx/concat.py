@@ -35,26 +35,7 @@ def concat(clip, *others):
   others = [(other.resize(size = clip.size) if other.size != clip.size else other) for other in others]
 
   # Sources
-  from ..clips import transformations
-  if "FlattenConcats" in transformations:
-    flattenedOthers = []
-    for other in others:
-      if isinstance(other, ConcatenatedVideoClip):
-        # Grab the sources of the input to avoid stacking ConcatenatedVideoClips
-        flattenedOthers.extend(other._source)
-        if other._childCount == 0 and other._graph.isLeaf(other):
-          other._graph.removeLeaf(other)
-      else:
-        flattenedOthers.append(other)
-    if isinstance(clip, ConcatenatedVideoClip):
-      # Grab the sources of the input to avoid stacking ConcatenatedVideoClips
-      source = clip._source + tuple(flattenedOthers)
-      if clip._childCount == 0 and clip._graph.isLeaf(clip):
-        clip._graph.removeLeaf(clip)
-    else:
-      source = (clip,) + tuple(flattenedOthers)
-  else:
-    source = (clip,) + tuple(others)
+  source = (clip,) + tuple(others)
 
   # Metadata: Update the duration
   metadata = copy.copy(clip._metadata)
@@ -72,8 +53,8 @@ class ConcatenatedVideoClip(VideoClip):
 
 
 
-  def __init__(self, source, metadata):
-    super().__init__(source, metadata, isIndirection = True, isConstant = len(source) == 1 and source[0]._isConstant)
+  def __init__(self, source, metadata, sourcesAreFlat = True):
+    super().__init__(source, metadata, isIndirection = True, isConstant = False)
 
     self._sourceStartFrames = None # Initialised only when it's needed
     self._mostRecentSourceIndex = 0 # Remembers the previously accessed source clip

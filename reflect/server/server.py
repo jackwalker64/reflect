@@ -211,6 +211,31 @@ class ScriptRunner(threading.Thread):
         finalLeaf = leaf.resize(size)
         finalLeaf._timestamp = leaf._timestamp
 
+    # Flatten concats
+    from ..core.clips import transformations
+    if "FlattenConcats" in transformations:
+      def sourcesOf(clip):
+        for s in clip._source:
+          if isinstance(s, reflect.vfx.concat.ConcatenatedVideoClip):
+            for ss in sourcesOf(s):
+              yield ss
+          else:
+            yield s
+
+      tA = time.perf_counter()
+      leaves = set(reflect.CompositionGraph.current().leaves)
+      leavesToRemove = []
+      for leaf in leaves:
+        if isinstance(leaf, reflect.vfx.concat.ConcatenatedVideoClip):
+          finalSources = list(sourcesOf(leaf))
+          newLeaf = finalSources[0].concat(finalSources[1:])
+          leavesToRemove.append(leaf)
+      for leaf in leavesToRemove:
+        reflect.CompositionGraph.current().removeLeaf(leaf)
+      tB = time.perf_counter()
+      print("FlattenConcats took {}".format(tB - tA))
+
+
     # Update priorities according to the new composition graph
     cache.reprioritise(reflect.CompositionGraph.current())
 
