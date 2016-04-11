@@ -1,0 +1,47 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[tmargin=1cm,lmargin=1cm]{geometry}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\usepackage{pgfplots}
+
+
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[height=10cm, width=10cm, grid=major, ymin=({-}0.15), ymax=(2.7), xlabel=number of concatenated clips, ylabel=total compile time / s]
+\addplot[very thick,color=red] coordinates {
+(1,0.00525354263195)
+(200,0.0670760444856)
+(400,0.168167977514)
+(600,0.305283178876)
+(800,0.479488826419)
+(1000,0.664631297563)
+(1200,0.948372348983)
+(1400,1.19515897545)
+(1600,1.55359180951)
+(1800,1.88400444108)
+(2000,2.4542136245)
+};
+
+\addlegendentry{no optimisation}
+\addplot[very thick,color=blue] coordinates {
+(1,0.00511095074146)
+(200,0.0490395783376)
+(400,0.0936758747236)
+(600,0.140896147792)
+(800,0.19761725623)
+(1000,0.247941868247)
+(1200,0.293774366381)
+(1400,0.349520883568)
+(1600,0.411891481001)
+(1800,0.474138601195)
+(2000,0.538710967603)
+};
+
+\addlegendentry{concat flattening}
+\end{axis}
+\end{tikzpicture}
+\end{document}

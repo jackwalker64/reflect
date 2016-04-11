@@ -4,32 +4,29 @@ import reflect
 import os
 import sys
 import time
+import logging
 
 
-limits = [1000]
-# limits = [2, 1000, 2000]
+# limit = [1, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000][10]
+limit = 1000
+print("LIMIT = {}".format(limit))
+logging.info("LIMIT = {}".format(limit))
 
-for limit in limits:
-  t1 = time.perf_counter()
+directoryPath = "examples/2x2"
+x = None
+v = None
+i = 0
+sys.setrecursionlimit(30000)
+for filename in os.listdir(directoryPath):
+  filepath = os.path.join(directoryPath, filename)
 
-  directoryPath = "examples/2x2"
-  x = None
-  v = None
-  i = 0
-  sys.setrecursionlimit(30000)
-  for filename in os.listdir(directoryPath):
-    filepath = os.path.join(directoryPath, filename)
+  x = reflect.load(filepath)
 
-    x = reflect.load(filepath)
+  if v is None:
+    v = x
+  else:
+    v = v.concat(x)
 
-    if v is None:
-      v = x
-    else:
-      v = v.concat(x)
-
-    i += 1
-    if i >= limit:
-      break
-
-  t2 = time.perf_counter()
-  print("LIMIT = {0}, T = {1:.16f} ms".format(limit, (t2 - t1) * 1000))
+  i += 1
+  if i >= limit:
+    break
