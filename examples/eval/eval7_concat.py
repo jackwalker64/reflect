@@ -12,7 +12,7 @@ limit = 1000
 print("LIMIT = {}".format(limit))
 logging.info("LIMIT = {}".format(limit))
 
-directoryPath = "examples/2x2"
+directoryPath = "examples/eval/2x2"
 x = None
 v = None
 i = 0

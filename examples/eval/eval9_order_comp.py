@@ -9,7 +9,7 @@ import time
 
 
 
-directoryPath = "examples/2x2"
+directoryPath = "examples/eval/2x2"
 x = None
 v = None
 i = 0
