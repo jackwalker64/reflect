@@ -16,6 +16,9 @@ i = 0
 limit = [2, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200][10]
 sys.setrecursionlimit(30000)
 
+print("LIMIT = {}".format(limit))
+logging.info("LIMIT = {}".format(limit))
+
 filepaths = [os.path.join(directoryPath, filename) for filename in os.listdir(directoryPath)]
 filepaths = filepaths[0:limit]
 t1 = time.perf_counter()

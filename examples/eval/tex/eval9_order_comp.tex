@@ -1,0 +1,47 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[tmargin=1cm,lmargin=1cm]{geometry}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\usepackage{pgfplots}
+
+
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[height=10cm, width=10cm, grid=major, xlabel=number of input nodes \$N\$, ylabel=total compile time / s]
+\addplot[very thick,color=red] coordinates {
+(5,0.0537262691382)
+(41,0.0572790856097)
+(81,0.061108074669)
+(121,0.0635892759634)
+(161,0.0683727346897)
+(201,0.0724789715361)
+(241,0.0762112950697)
+(281,0.0797173659771)
+(321,0.0821209993311)
+(361,0.0874554208342)
+(401,0.0901976395282)
+};
+
+\addlegendentry{no optimisation}
+\addplot[very thick,color=blue] coordinates {
+(5,0.0533857893997)
+(41,0.0703810531474)
+(81,0.117180582005)
+(121,0.192390201044)
+(161,0.310847658869)
+(201,0.463130012316)
+(241,0.657263674421)
+(281,0.860068766667)
+(321,1.14124999072)
+(361,1.37964171804)
+(401,1.71584247103)
+};
+
+\addlegendentry{canonical order}
+\end{axis}
+\end{tikzpicture}
+\end{document}
