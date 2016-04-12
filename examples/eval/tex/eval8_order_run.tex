@@ -1,0 +1,67 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[tmargin=1cm,lmargin=1cm]{geometry}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\usepackage{pgfplots}
+
+
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[height=10cm, width=10cm, grid=major, xlabel=frame size $s$, ylabel=render time per frame / ms]
+\addplot[very thick,color=red] coordinates {
+(1,3.13744825333)
+(100,3.62683455)
+(200,5.14175605)
+(300,8.92133714667)
+(400,12.47691842)
+(500,15.9279664333)
+(600,24.2545307067)
+(700,32.63920693)
+(800,42.27964753)
+(900,50.6431611067)
+(1000,64.6939663133)
+(1100,75.35413946)
+(1200,90.0060322067)
+(1300,104.889860777)
+(1400,120.870477837)
+(1500,131.80448544)
+(1600,162.741549683)
+(1700,176.631928343)
+(1800,193.221142273)
+(1900,208.1620588)
+(2000,229.602725)
+};
+
+\addlegendentry{no optimisation}
+\addplot[very thick,color=blue] coordinates {
+(1,2.71829124667)
+(100,2.90943776667)
+(200,5.57823571333)
+(300,7.98130587)
+(400,11.2208127133)
+(500,14.5839674667)
+(600,16.6593578733)
+(700,16.4480727)
+(800,16.61856857)
+(900,16.2741635)
+(1000,17.7186850567)
+(1100,16.4027607333)
+(1200,16.2572675133)
+(1300,16.1727022433)
+(1400,16.2903768233)
+(1500,16.54885129)
+(1600,17.29492005)
+(1700,16.8713257067)
+(1800,18.62279103)
+(1900,16.9422376533)
+(2000,17.4187386233)
+};
+
+\addlegendentry{canonical order}
+\end{axis}
+\end{tikzpicture}
+\end{document}
