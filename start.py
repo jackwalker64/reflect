@@ -43,6 +43,7 @@ def main():
   else:
     reflect.setTransformations(["CanonicalOrder", "FlattenConcats"])
 
+  reflect.server.debug = args.debug
   reflect.server.start(filepath, defaultFilepath, cacheSize = int(args.cacheSize) * 1024 * 1024, cacheAlgorithm = args.cacheAlgorithm, enableStatistics = args.enableStatistics, logFilepath = args.logFilepath)
 
   print("")

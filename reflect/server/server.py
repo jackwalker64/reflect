@@ -15,6 +15,8 @@ import threading
 import tkinter
 from tkinter import filedialog
 
+debug = False
+
 
 
 def start(filepath, defaultFilepath, cacheSize, cacheAlgorithm = None, enableStatistics = False, logFilepath = None):
@@ -193,7 +195,8 @@ class ScriptRunner(threading.Thread):
     logging.info("{}: Exited {}".format(datetime.datetime.now().isoformat(" "), os.path.basename(self._filepath)))
 
     print("")
-    logging.info(cache)
+    if debug:
+      logging.info(cache)
     cache.userScriptIsRunning = False
 
     if failed:
@@ -249,7 +252,8 @@ class ScriptRunner(threading.Thread):
     # Commit any staged frames into the main cache
     cache.commit()
 
-    logging.info(cache)
+    if debug:
+      logging.info(cache)
 
     # Close readers that were opened in the previous session but not claimed in the current session
     for filepath, readers in reflect.core.roots.load.readyReaders.items():
