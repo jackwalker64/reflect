@@ -321,19 +321,26 @@ class ClipsTestCase(unittest.TestCase):
     cache = reflect.cache.Cache.current()
     cache.userScriptIsRunning = True
 
-    reflect.setTransformations(["FlattenConcats"])
     x = reflect.load(bbb_480p_avi_path)
     y = x.concat(x).concat(x).concat(x)
     z = x.concat(x, x, x)
-    self.assertEqual(y, z)
-    self.assertEqual(len(y._source), 4)
+    reflect.CompositionGraph.current().flattenConcats()
 
-    reflect.setTransformations([])
+    leaves = reflect.CompositionGraph.current().leaves
+    for leaf in leaves:
+      break
+    self.assertEqual(len(leaves), 1)
+    self.assertEqual(leaf, z)
+    reflect.CompositionGraph.current().removeLeaf(z)
+
     x = reflect.load(bbb_480p_avi_path)
     y = x.concat(x).concat(x).concat(x)
     z = x.concat(x, x, x)
-    self.assertNotEqual(y, z)
-    self.assertEqual(len(y._source), 2)
+
+    leaves = reflect.CompositionGraph.current().leaves
+    for leaf in leaves:
+      break
+    self.assertEqual(len(leaves), 2)
 
     cache.userScriptIsRunning = False
     cache.reprioritise(reflect.CompositionGraph.current())

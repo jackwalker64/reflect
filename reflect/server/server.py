@@ -217,33 +217,7 @@ class ScriptRunner(threading.Thread):
     # Flatten concats
     from ..core.clips import transformations
     if "FlattenConcats" in transformations:
-      def sourcesOf(clip):
-        q = list(reversed(clip._source))
-        while q:
-          s = q.pop()
-          if isinstance(s, reflect.vfx.concat.ConcatenatedVideoClip):
-            q.extend(reversed(s._source))
-          else:
-            yield s
-
-      ta1 = time.perf_counter()
-
-      leaves = set(reflect.CompositionGraph.current().leaves)
-      leavesToRemove = []
-      for leaf in leaves:
-        if isinstance(leaf, reflect.vfx.concat.ConcatenatedVideoClip):
-          # Compute the flat source tuple of the leaf
-          finalSources = tuple(sourcesOf(leaf))
-
-          # If the concat wasn't already flat, then add it to the DAG
-          if finalSources != leaf._source:
-            newLeaf = finalSources[0].concat(finalSources[1:])
-            leavesToRemove.append(leaf)
-      for leaf in leavesToRemove:
-        reflect.CompositionGraph.current().removeLeaf(leaf)
-
-      ta2 = time.perf_counter()
-      logging.info("Concat flattening took {0:.16f} s".format(ta2 - ta1))
+      reflect.CompositionGraph.current().flattenConcats()
 
 
     # Update priorities according to the new composition graph

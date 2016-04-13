@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from .clips import Clip
+import time
+import logging
 
 
 
@@ -94,6 +96,39 @@ class CompositionGraph:
       raise TypeError("clip must be an instance of Clip")
 
     return clip in self.leaves
+
+
+
+  def flattenConcats(self):
+    from . import vfx
+
+    def sourcesOf(clip):
+      q = list(reversed(clip._source))
+      while q:
+        s = q.pop()
+        if isinstance(s, vfx.concat.ConcatenatedVideoClip):
+          q.extend(reversed(s._source))
+        else:
+          yield s
+
+    ta1 = time.perf_counter()
+
+    leaves = set(self.leaves)
+    leavesToRemove = []
+    for leaf in leaves:
+      if isinstance(leaf, vfx.concat.ConcatenatedVideoClip):
+        # Compute the flat source tuple of the leaf
+        finalSources = tuple(sourcesOf(leaf))
+
+        # If the concat wasn't already flat, then add it to the DAG
+        if finalSources != leaf._source:
+          newLeaf = finalSources[0].concat(finalSources[1:])
+          leavesToRemove.append(leaf)
+    for leaf in leavesToRemove:
+      self.removeLeaf(leaf)
+
+    ta2 = time.perf_counter()
+    logging.info("Concat flattening took {0:.16f} s".format(ta2 - ta1))
 
 
 
