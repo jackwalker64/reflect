@@ -379,6 +379,11 @@ class VideoClip(Clip):
 
 
 
+  def preview(self):
+    self._graph.addForcedPreviewNode(self)
+
+
+
 class VideoClipMetadata():
   """VideoClipMetadata()
 

@@ -214,6 +214,9 @@ class ScriptRunner(threading.Thread):
         finalLeaf = leaf.resize(size)
         finalLeaf._timestamp = leaf._timestamp
 
+    # Add any nodes whose preview() method has been invoked to the set of leaves
+    reflect.CompositionGraph.current().unifyPreviewNodes()
+
     # Flatten concats
     from ..core.clips import transformations
     if "FlattenConcats" in transformations:

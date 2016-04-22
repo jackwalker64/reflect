@@ -53,6 +53,7 @@ class CompositionGraph:
 
   def __init__(self):
     self.leaves = set()
+    self.forced = set()
 
 
 
@@ -99,7 +100,37 @@ class CompositionGraph:
 
 
 
+  def addForcedPreviewNode(self, clip):
+    """addForcedPreviewNode(clip)
+
+    Add `clip` as a node to be previewed, regardless of whether or not it is a leaf.
+    """
+
+    if not isinstance(clip, Clip):
+      raise TypeError("clip must be an instance of Clip")
+
+    self.forced.add(clip)
+
+
+
+  def unifyPreviewNodes(self):
+    """unifyPreviewNodes()
+
+    Move the forced preview nodes in to the set of leaves.
+    """
+
+    print("Leaves:", self.leaves)
+    print("Forced:", self.forced)
+
+    self.leaves.update(self.forced)
+    self.forced = set()
+
+
+
   def flattenConcats(self):
+    if self.forced:
+      raise Exception("Attempted to flatten concats before unifying the preview nodes")
+
     from . import vfx
 
     def sourcesOf(clip):
@@ -123,6 +154,7 @@ class CompositionGraph:
         # If the concat wasn't already flat, then add it to the DAG
         if finalSources != leaf._source:
           newLeaf = finalSources[0].concat(finalSources[1:])
+          newLeaf._timestamp = leaf.timestamp
           leavesToRemove.append(leaf)
     for leaf in leavesToRemove:
       self.removeLeaf(leaf)
