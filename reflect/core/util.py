@@ -119,9 +119,6 @@ class CompositionGraph:
     Move the forced preview nodes in to the set of leaves.
     """
 
-    print("Leaves:", self.leaves)
-    print("Forced:", self.forced)
-
     self.leaves.update(self.forced)
     self.forced = set()
 
