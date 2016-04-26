@@ -30,10 +30,12 @@ if __name__ == "__main__":
               samples = []
               yvalues.append(sample)
       assert(len(yvalues) == 21)
-      xvalues = [1, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000]
-      coordinates[identifier] = zip(xvalues, yvalues)
+      # xvalues = [1, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000]
+      xvalues = [1, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400]
+      xvalues = [x*x/1000000 for x in xvalues]
+      coordinates[identifier] = zip(xvalues, yvalues[:len(xvalues)])
 
-    options = "height=10cm, width=10cm, grid=major, xlabel=frame size, ylabel=render time / ms"
+    options = "height=10cm, width=10cm, grid=major, xlabel=input frame size / megapixels, ylabel=render time per frame / ms"
     with doc.create(TikZ()):
       with doc.create(Axis(options = options)) as plot:
         for identifier in identifiers:
@@ -55,7 +57,17 @@ if __name__ == "__main__":
     print("Done {}.".format(name))
     print("")
 
+    print("""Remember to change the start of the .tex file to:
 
+\pgfplotsset{vasymptote/.style={
+  before end axis/.append code={
+    \draw[densely dashed] ({rel axis cs:0,0} -| {axis cs:#1,0})
+    -- ({rel axis cs:0,1} -| {axis cs:#1,0});
+  }
+}}
+
+\\begin{tikzpicture}
+\\begin{axis}[height=10cm, width=10cm, grid=major, xlabel=input frame size / megapixels, ylabel=render time per frame / ms, vasymptote=0.2916]""")
 
 
 
