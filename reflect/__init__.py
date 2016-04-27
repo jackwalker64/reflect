@@ -4,8 +4,9 @@ __version__ = "0.0.0"
 
 from .core import *
 from .server import *
+from .core.vfx import *
 
-# Make the root functions easily accessibly as reflect.<fn>
+# Make the root functions easily accessible as reflect.<fn>
 from .core.roots.load import load
 from .core.roots.text import text
 
