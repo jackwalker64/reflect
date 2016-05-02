@@ -1,6 +1,6 @@
 # reflect
 
-## Python modules installed:
+## Python module dependencies:
 
 * imageio 1.5
 * numpy 1.10.1
@@ -64,7 +64,7 @@
         sudo ldconfig
 
 * Go to the `reflect` directory (containing `setup.py`) and run: `sudo pip3 install -e .`
-* Run e.g. `python3 start.py -f examples/example5_slideshow.py -V graph.png`
+* Run e.g. `python3 start.py -f examples/example1_slideshow.py -V graph.png`
 
 ## Controls
 
